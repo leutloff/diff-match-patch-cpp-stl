@@ -840,7 +840,7 @@ class diff_match_patch {
   static bool diff_halfMatchI(const string_t &longtext, const string_t &shorttext, int i, HalfMatchResult& best) {
     // Start with a 1/4 length substring at position i as a seed.
     const string_t seed = safeMid(longtext, i, longtext.length() / 4);
-    int j = string_t::npos;
+    size_t j = string_t::npos;
     while ((j = shorttext.find(seed, j + 1)) != string_t::npos) {
       const int prefixLength = diff_commonPrefix(safeMid(longtext, i),
           safeMid(shorttext, j));
