@@ -20,12 +20,11 @@
  * http://code.google.com/p/google-diff-match-patch/
  */
 
+#include "diff_match_patch_string.h"
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-//#include <string>
-#include "diff_match_patch_string.h"
 
 using namespace std;
 
@@ -213,7 +212,7 @@ class diff_match_patch_test : diff_match_patch {
     stringstream lines;
     string_t chars;
     for (size_t x = 1; x < n + 1; x++) {
-      lines << x << '\n';
+      lines << x << traits::eol;
       tmpVector[x].second = lines.str().size();
       chars += (wchar_t)x;
     }
@@ -257,7 +256,7 @@ class diff_match_patch_test : diff_match_patch {
     stringstream lines;
     string_t chars;
     for (size_t x = 1; x < n + 1; x++) {
-      lines << x << '\n';
+      lines << x << traits::eol;
       tmpVector[x].second = lines.str().size();
       chars += (char)x;
     }
@@ -861,7 +860,7 @@ class diff_match_patch_test : diff_match_patch {
     vector<bool> boolArray = results.second;
 
     stringstream result;
-    result << results.first << '\t' << boolArray.size();
+    result << results.first << traits::tab << boolArray.size();
     assertEquals("patch_apply: Null case.", "Hello world.\t0", result.str());
 
     string_t resultStr;

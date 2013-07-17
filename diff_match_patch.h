@@ -26,9 +26,11 @@
 #include <limits>
 #include <list>
 #include <map>
+#include <string>
 #include <vector>
+#include <cstdlib>
+#include <cwchar>
 #include <time.h>
-
 
 /*
  * Functions for diff, match and patch.
@@ -2526,12 +2528,13 @@ template <> struct diff_match_patch_traits<wchar_t> : diff_match_patch_utf32_fro
   static wchar_t from_wchar(wchar_t c) { return c; }
   static wchar_t to_wchar(wchar_t c) { return c; }
   static const wchar_t* cs(const wchar_t* s) { return s; }
+  static const wchar_t eol = L'\n';
+  static const wchar_t tab = L'\t';
 };
 
-/*
 // Possible specialization of the traits for char
 #include <cctype>
-template <> struct diff_match_patch_traits<char> : diff_match_patch_direct_utf32<char>
+template <> struct diff_match_patch_traits<char> : diff_match_patch_utf32_direct<char>
 {
   static bool is_alnum(char c) { return std::isalnum(c)? true : false; }
   static bool is_digit(char c) { return std::isdigit(c)? true : false; }
@@ -2540,7 +2543,9 @@ template <> struct diff_match_patch_traits<char> : diff_match_patch_direct_utf32
   static char from_wchar(wchar_t c) { return static_cast<char>(c); }
   static wchar_t to_wchar(char c) { return static_cast<wchar_t>(c); }
   static std::string cs(const wchar_t* s) { return std::string(s, s + wcslen(s)); }
+  static const char eol = '\n';
+  static const char tab = '\t';
 };
-*/
+
 
 #endif // DIFF_MATCH_PATCH_H

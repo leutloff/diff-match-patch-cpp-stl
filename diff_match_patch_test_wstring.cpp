@@ -20,12 +20,12 @@
  * http://code.google.com/p/google-diff-match-patch/
  */
 
+#include "diff_match_patch.h"
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "diff_match_patch.h"
 
 using namespace std;
 
