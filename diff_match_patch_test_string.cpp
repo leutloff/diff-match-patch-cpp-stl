@@ -28,41 +28,44 @@
 
 using namespace std;
 
-//struct wastring : wstring  // The same as wstring, but can be constructed from char* (to use ASCII strings in the test functions)
-//{
-//  wastring() {}
-//  wastring(const wstring& s) : wstring(s) {}
-//  wastring(const value_type* s) : wstring(s) {}
-//  wastring(const value_type* s, size_t n) : wstring(s, n) {}
-//  wastring(const char* s) : wstring(s, s + strlen(s)) {}
-//  wastring(const char* s, size_t n) : wstring(s, s + n) {}
-//  wastring operator+=(value_type c) { append(1, c); return *this; }
-//  wastring operator+=(const wastring& s) { append(s); return *this; }
-//  wastring operator+=(const char* s) { append(s, s + strlen(s)); return *this; }
-//};
+struct wastring : wstring  // The same as wstring, but can be constructed from char* (to use ASCII strings in the test functions)
+{
+  wastring() {}
+  wastring(const wstring& s) : wstring(s) {}
+  wastring(const value_type* s) : wstring(s) {}
+  wastring(const value_type* s, size_t n) : wstring(s, n) {}
+  wastring(const char* s) : wstring(s, s + strlen(s)) {}
+  wastring(const char* s, size_t n) : wstring(s, s + n) {}
+  wastring operator+=(value_type c) { append(1, c); return *this; }
+  wastring operator+=(const wastring& s) { append(s); return *this; }
+  wastring operator+=(const char* s) { append(s, s + strlen(s)); return *this; }
 
-//inline wastring operator+(const wastring& s, const char* p) { return s + wastring(p); }
-//inline wastring operator+(const char* p, const wastring& s) { return wastring(p) + s; }
+  static const wchar_t eol = L'\n';
+  static const wchar_t tab = L'\t';
+};
 
-//ostream& operator<<(ostream& o, const wastring& s)
-//{
-//  o << setfill('0');
-//  for (wastring::const_pointer p = s.c_str(), end = p + s.length(); p != end; ++p)
-//  {
-//    if (*p >= 0x80)
-//      o << "\\u" << hex << setw(4) << unsigned(*p);
-//    else if (*p >= ' ')
-//      o << char(*p);
-//    else
-//      switch (char(*p)) {
-//        case '\n': o << "\\n"; break;
-//        case '\r': o << "\\r"; break;
-//        case '\t': o << "\\t"; break;
-//        default: o << "\\x" << hex << setw(2) << unsigned(*p);
-//      }
-//  }
-//  return o;
-//}
+inline wastring operator+(const wastring& s, const char* p) { return s + wastring(p); }
+inline wastring operator+(const char* p, const wastring& s) { return wastring(p) + s; }
+
+ostream& operator<<(ostream& o, const wastring& s)
+{
+  o << setfill('0');
+  for (wastring::const_pointer p = s.c_str(), end = p + s.length(); p != end; ++p)
+  {
+    if (*p >= 0x80)
+      o << "\\u" << hex << setw(4) << unsigned(*p);
+    else if (*p >= ' ')
+      o << char(*p);
+    else
+      switch (char(*p)) {
+        case '\n': o << "\\n"; break;
+        case '\r': o << "\\r"; break;
+        case '\t': o << "\\t"; break;
+        default: o << "\\x" << hex << setw(2) << unsigned(*p);
+      }
+  }
+  return o;
+}
 
 
 #define dmp (*this)
@@ -209,7 +212,7 @@ class diff_match_patch_test : diff_match_patch {
     size_t n = 300;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
-    stringstream lines;
+    basic_stringstream<char_t> lines;
     string_t chars;
     for (size_t x = 1; x < n + 1; x++) {
       lines << x << traits::eol;
@@ -253,12 +256,12 @@ class diff_match_patch_test : diff_match_patch {
     size_t n = 300;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
-    stringstream lines;
+    basic_stringstream<char_t> lines;
     string_t chars;
     for (size_t x = 1; x < n + 1; x++) {
       lines << x << traits::eol;
       tmpVector[x].second = lines.str().size();
-      chars += (char)x;
+      chars += (char_t)x;
     }
     tmpVector.text1 = lines.str();
     for (size_t x = 1, prev = 0; x < n + 1; x++) {
@@ -622,7 +625,7 @@ class diff_match_patch_test : diff_match_patch {
 
   void testMatchAlphabet() {
     // Initialise the bitmasks for Bitap.
-    map<char, int> bitmask, bitmask2;
+    map<char_t, int> bitmask, bitmask2;
     bitmask['a'] = 4;
     bitmask['b'] = 2;
     bitmask['c'] = 1;
@@ -859,7 +862,7 @@ class diff_match_patch_test : diff_match_patch {
     pair<string_t, vector<bool> > results = dmp.patch_apply(patches, "Hello world.");
     vector<bool> boolArray = results.second;
 
-    stringstream result;
+    basic_stringstream<char_t> result;
     result << results.first << traits::tab << boolArray.size();
     assertEquals("patch_apply: Null case.", "Hello world.\t0", result.str());
 
@@ -1040,8 +1043,8 @@ class diff_match_patch_test : diff_match_patch {
     cout << strCase << " OK" << endl;
   }
 
-  void assertEquals(const char* strCase, const map<char, int> &m1, const map<char, int> &m2) {
-    map<char, int>::const_iterator i1 = m1.begin(), i2 = m2.begin();
+  void assertEquals(const char* strCase, const map<char_t, int> &m1, const map<char_t, int> &m2) {
+    map<char_t, int>::const_iterator i1 = m1.begin(), i2 = m2.begin();
 
     while (i1 != m1.end() && i2 != m2.end()) {
       if ((*i1).first != (*i2).first || (*i1).second != (*i2).second) {

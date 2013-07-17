@@ -25,7 +25,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <string>
 
 using namespace std;
 
@@ -40,6 +39,9 @@ struct wastring : wstring  // The same as wstring, but can be constructed from c
   wastring operator+=(value_type c) { append(1, c); return *this; }
   wastring operator+=(const wastring& s) { append(s); return *this; }
   wastring operator+=(const char* s) { append(s, s + strlen(s)); return *this; }
+
+  static const wchar_t eol = L'\n';
+  static const wchar_t tab = L'\t';
 };
 
 inline wastring operator+(const wastring& s, const char* p) { return s + wastring(p); }
@@ -70,8 +72,10 @@ ostream& operator<<(ostream& o, const wastring& s)
 
 class diff_match_patch_test : diff_match_patch<wastring> {
  typedef vector<string_t> Strings;
+ typedef diff_match_patch_traits<wchar_t> traits;
  public:
   diff_match_patch_test() {}
+
 
   void run_all_tests() {
     clock_t t = clock();
@@ -210,10 +214,10 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     size_t n = 300;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
-    wstringstream lines;
+    basic_stringstream<char_t> lines;
     string_t chars;
     for (size_t x = 1; x < n + 1; x++) {
-      lines << x << L'\n';
+      lines << x << traits::eol;
       tmpVector[x].second = lines.str().size();
       chars += (wchar_t)x;
     }
@@ -254,12 +258,12 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     size_t n = 300;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
-    wstringstream lines;
+    basic_stringstream<char_t> lines;
     string_t chars;
     for (size_t x = 1; x < n + 1; x++) {
-      lines << x << L'\n';
+      lines << x << traits::eol;
       tmpVector[x].second = lines.str().size();
-      chars += (wchar_t)x;
+      chars += (char_t)x;
     }
     tmpVector.text1 = lines.str();
     for (size_t x = 1, prev = 0; x < n + 1; x++) {
@@ -622,7 +626,7 @@ class diff_match_patch_test : diff_match_patch<wastring> {
 
   void testMatchAlphabet() {
     // Initialise the bitmasks for Bitap.
-    map<wchar_t, int> bitmask, bitmask2;
+    map<char_t, int> bitmask, bitmask2;
     bitmask['a'] = 4;
     bitmask['b'] = 2;
     bitmask['c'] = 1;
@@ -859,8 +863,8 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     pair<string_t, vector<bool> > results = dmp.patch_apply(patches, "Hello world.");
     vector<bool> boolArray = results.second;
 
-    wstringstream result;
-    result << results.first << L'\t' << boolArray.size();
+    basic_stringstream<char_t> result;
+    result << results.first << traits::tab << boolArray.size();
     assertEquals("patch_apply: Null case.", "Hello world.\t0", result.str());
 
     string_t resultStr;
@@ -1040,8 +1044,8 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     cout << strCase << " OK" << endl;
   }
 
-  void assertEquals(const char* strCase, const map<wchar_t, int> &m1, const map<wchar_t, int> &m2) {
-    map<wchar_t, int>::const_iterator i1 = m1.begin(), i2 = m2.begin();
+  void assertEquals(const char* strCase, const map<char_t, int> &m1, const map<char_t, int> &m2) {
+    map<char_t, int>::const_iterator i1 = m1.begin(), i2 = m2.begin();
 
     while (i1 != m1.end() && i2 != m2.end()) {
       if ((*i1).first != (*i2).first || (*i1).second != (*i2).second) {
