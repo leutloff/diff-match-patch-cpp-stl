@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Diff Match and Patch -- Test Harness
+ * Diff Match and Patch -- Test Harness using std::wstring
  * http://code.google.com/p/google-diff-match-patch/
  */
 

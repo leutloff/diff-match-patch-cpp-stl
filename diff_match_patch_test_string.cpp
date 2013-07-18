@@ -16,11 +16,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Diff Match and Patch -- Test Harness
+ * Diff Match and Patch -- Test Harness using std::string
  * http://code.google.com/p/google-diff-match-patch/
  */
 
-#include "diff_match_patch_string.h"
+#include "diff_match_patch.h"
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -70,8 +70,9 @@ ostream& operator<<(ostream& o, const wastring& s)
 
 #define dmp (*this)
 
-class diff_match_patch_test : diff_match_patch {
+class diff_match_patch_test : diff_match_patch<string> {
  typedef vector<string_t> Strings;
+ typedef diff_match_patch_traits<char> traits;
  public:
   diff_match_patch_test() {}
 
