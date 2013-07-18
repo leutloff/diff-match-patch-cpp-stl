@@ -9,4 +9,4 @@ before_script:
   - cd build
   - cmake ..
 
-script: make
+script: make && ./diff_match_patch_test_string && ./diff_match_patch_test_wstring
