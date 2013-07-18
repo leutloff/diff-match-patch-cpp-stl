@@ -3,6 +3,7 @@
  * Author: fraser@google.com (Neil Fraser)
  * Author: mikeslemmer@gmail.com (Mike Slemmer)
  * Author: snhere@gmail.com (Sergey Nozhenko)
+ * Author: leutloff@sundancer.oche.de (Christian Leutloff)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

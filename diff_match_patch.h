@@ -39,12 +39,12 @@
  *
  * @author fraser@google.com (Neil Fraser)
  *
- * Qt/C++ port by mikeslemmer@gmail.com (Mike Slemmer):
+ * Qt/C++ port by mikeslemmer@gmail.com (Mike Slemmer)
  *
  * STL-only port by snhere@gmail.com (Sergey Nozhenko)
+ * and some tweaks for std::string by leutloff@sundancer.oche.de (Christian Leutloff)
  *
- * Here is a trivial sample program which works properly when linked with this
- * library:
+ * Here is a trivial sample program:
  *
 
  #include "diff_match_patch.h"
