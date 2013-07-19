@@ -10,12 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-message("***   Build the test harness for C++ STL variants of Diff Match and Patch http://code.google.com/p/google-diff-match-patch/ ***")
-message("***   http://code.google.com/p/google-diff-match-patch/ and https://github.com/leutloff/diff-match-patch-cpp-stl ***")
+message("***   Build the test harness for C++ STL variants of Diff Match and Patch ***")
+message("***   http://code.google.com/p/google-diff-match-patch/ and               ***")
+message("***   https://github.com/leutloff/diff-match-patch-cpp-stl                ***")
 
 project (diff-match-patch-cpp-stl CXX)
 
 add_executable(diff_match_patch_test_wstring diff_match_patch_test_wstring.cpp)
 
 add_executable(diff_match_patch_test_string diff_match_patch_test_string.cpp)
-

@@ -358,7 +358,7 @@ class diff_match_patch {
     {
       const string_t& longtext = text1.length() > text2.length() ? text1 : text2;
       const string_t& shorttext = text1.length() > text2.length() ? text2 : text1;
-      const int i = longtext.find(shorttext);
+      const size_t i = longtext.find(shorttext);
       if (i != string_t::npos) {
         // Shorter text is inside the longer text (speedup).
         const Operation op = (text1.length() > text2.length()) ? DELETE : INSERT;
@@ -1073,8 +1073,8 @@ class diff_match_patch {
         if (is_control(*p1) || is_control(*p2)) {
           score++;
           // Four points for blank lines.
-          if (traits::to_wchar(*p1) == L'\n' && p1 != one.c_str() && (traits::to_wchar(*(p1 - 1)) == L'\n'
-               || traits::to_wchar(*(p1 - 1)) == L'\r' && p1 - 1 != one.c_str() && traits::to_wchar(*(p1 - 2)) == L'\n')) {
+          if ((traits::to_wchar(*p1) == L'\n' && p1 != one.c_str() && (traits::to_wchar(*(p1 - 1)) == L'\n')
+               || (traits::to_wchar(*(p1 - 1)) == L'\r' && p1 - 1 != one.c_str() && traits::to_wchar(*(p1 - 2)) == L'\n'))) {
             score++;
           }
           else {
@@ -1664,7 +1664,7 @@ class diff_match_patch {
           rd[j] = ((rd[j + 1] << 1) | 1) & charMatch;
         } else {
           // Subsequent passes: fuzzy match.
-          rd[j] = ((rd[j + 1] << 1) | 1) & charMatch
+          rd[j] = (((rd[j + 1] << 1) | 1) & charMatch)
               | (((last_rd[j + 1] | last_rd[j]) << 1) | 1)
               | last_rd[j + 1];
         }
