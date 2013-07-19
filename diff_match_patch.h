@@ -2232,7 +2232,7 @@ class diff_match_patch {
             if (l > 0 && traits::to_wchar(*t) == L',') ++t, --l;
             while (l > 0 && traits::is_digit(*t)) --l, length1 += *t++;
             if (l > 0 && traits::to_wchar(*t++) == L' ' && traits::to_wchar(*t++) == L'+' && traits::is_digit(*t)) {
-              do { start2 += *t; } while (--l >= 0 && traits::is_digit(*++t));
+              do { start2 += *t; --l; } while (traits::is_digit(*++t));
               if (l > 0 && traits::to_wchar(*t) == L',') ++t, --l;
               while (l > 0 && traits::is_digit(*t)) --l, length2 += *t++;
               if (l == 0 && traits::to_wchar(*t++) == L' ' && traits::to_wchar(*t++) == L'@' && traits::to_wchar(*t) == L'@') break; // Success
