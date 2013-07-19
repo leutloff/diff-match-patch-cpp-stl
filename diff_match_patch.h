@@ -763,7 +763,7 @@ class diff_match_patch {
     int length = 1;
     while (true) {
       string_t pattern = right(text1_trunc, length);
-      int found = text2_trunc.find(pattern);
+      size_t found = text2_trunc.find(pattern);
       if (found == string_t::npos) {
         return best;
       }
@@ -1073,8 +1073,8 @@ class diff_match_patch {
         if (is_control(*p1) || is_control(*p2)) {
           score++;
           // Four points for blank lines.
-          if ((traits::to_wchar(*p1) == L'\n' && p1 != one.c_str() && (traits::to_wchar(*(p1 - 1)) == L'\n')
-               || (traits::to_wchar(*(p1 - 1)) == L'\r' && p1 - 1 != one.c_str() && traits::to_wchar(*(p1 - 2)) == L'\n'))) {
+          if (((traits::to_wchar(*p1) == L'\n') && (p1 != one.c_str()) && (traits::to_wchar(*(p1 - 1)) == L'\n'))
+               || ((traits::to_wchar(*(p1 - 1)) == L'\r') && (p1 - 1 != one.c_str()) && (traits::to_wchar(*(p1 - 2)) == L'\n'))) {
             score++;
           }
           else {
