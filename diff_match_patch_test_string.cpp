@@ -1181,7 +1181,7 @@ class diff_match_patch_test : diff_match_patch<string> {
   Strings diff_halfMatch(const string_t &text1, const string_t &text2) {
     Strings list;
     HalfMatchResult hm;
-    if (diff_match_patch::diff_halfMatch(text1, text2, hm)) {
+    if (diff_match_patch<string>::diff_halfMatch(text1, text2, hm)) {
       list.push_back(hm.text1_a);
       list.push_back(hm.text1_b);
       list.push_back(hm.text2_a);
