@@ -148,7 +148,11 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     assertEquals("diff_commonOverlap: No overlap.", 0, dmp.diff_commonOverlap("123456", "abcd"));
 
     assertEquals("diff_commonOverlap: Overlap.", 3, dmp.diff_commonOverlap("123456xxx", "xxxabcd"));
-  }
+
+    // Some overly clever languages (C#) may treat ligatures as equal to their
+    // component letters.  E.g. U+FB01 == 'fi'
+    assertEquals("diff_commonOverlap: Unicode.", 0, dmp.diff_commonOverlap("fi", L"\ufb01i"));
+}
 
   void testDiffHalfmatch() {
     // Detect a halfmatch.
