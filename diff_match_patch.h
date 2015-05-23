@@ -944,6 +944,8 @@ class diff_match_patch {
     // Find any overlaps between deletions and insertions.
     // e.g: <del>abcxxx</del><ins>xxxdef</ins>
     //   -> <del>abc</del>xxx<ins>def</ins>
+    // e.g: <del>xxxabc</del><ins>defxxx</ins>
+    //   -> <ins>def</ins>xxx<del>abc</del>
     // Only extract an overlap if it is as big as the edit ahead or behind it.
     if ((cur_diff = diffs.begin()) != diffs.end()) {
       for (typename Diffs::iterator prev_diff = cur_diff; ++cur_diff != diffs.end(); prev_diff = cur_diff) {
@@ -951,16 +953,33 @@ class diff_match_patch {
             (*cur_diff).operation == INSERT) {
           string_t deletion = (*prev_diff).text;
           string_t insertion = (*cur_diff).text;
-          int overlap_length = diff_commonOverlap(deletion, insertion);
-          if (overlap_length >= deletion.size() / 2.0 ||
-              overlap_length >= insertion.size() / 2.0) {
-            // Overlap found.  Insert an equality and trim the surrounding edits.
-            diffs.insert(cur_diff, Diff(EQUAL, insertion.substr(0, overlap_length)));
-            (*prev_diff).text =
-                deletion.substr(0, deletion.length() - overlap_length);
-            (*cur_diff).text = safeMid(insertion, overlap_length);
-            // diffs.insert inserts the element before the cursor, so there is
-            // no need to step past the new element.
+          int overlap_length1 = diff_commonOverlap(deletion, insertion);
+          int overlap_length2 = diff_commonOverlap(insertion, deletion);
+          if (overlap_length1 >= overlap_length2) {
+            if (overlap_length1 >= deletion.size() / 2.0 ||
+                overlap_length1 >= insertion.size() / 2.0) {
+              // Overlap found.  Insert an equality and trim the surrounding edits.
+              diffs.insert(cur_diff, Diff(EQUAL, insertion.substr(0, overlap_length1)));
+              prev_diff->text =
+                  deletion.substr(0, deletion.length() - overlap_length1);
+              cur_diff->text = safeMid(insertion, overlap_length1);
+              // diffs.insert inserts the element before the cursor, so there is
+              // no need to step past the new element.
+            }
+          } else {
+            if (overlap_length2 >= deletion.length() / 2.0 ||
+                overlap_length2 >= insertion.length() / 2.0) {
+              // Reverse overlap found.
+              // Insert an equality and swap and trim the surrounding edits.
+              diffs.insert(cur_diff, Diff(EQUAL, deletion.substr(0, overlap_length2)));
+              prev_diff->operation = INSERT;
+              prev_diff->text =
+                  insertion.substr(0, insertion.length() - overlap_length2);
+              cur_diff->operation = DELETE;
+              cur_diff->text = safeMid(deletion, overlap_length2);
+              // diffs.insert inserts the element before the cursor, so there is
+              // no need to step past the new element.
+            }
           }
           if (++cur_diff == diffs.end()) break;
         }
