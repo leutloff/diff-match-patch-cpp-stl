@@ -1067,7 +1067,7 @@ class diff_match_patch {
   /**
    * Given two strings, compute a score representing whether the internal
    * boundary falls on logical boundaries.
-   * Scores range from 5 (best) to 0 (worst).
+   * Scores range from 6 (best) to 0 (worst).
    * @param one First string.
    * @param two Second string.
    * @return The score.
@@ -1076,7 +1076,7 @@ class diff_match_patch {
   static int diff_cleanupSemanticScore(const string_t &one, const string_t &two) {
     if (one.empty() || two.empty()) {
       // Edges are the best.
-      return 10;
+      return 6;
     }
 
     // Each port of this function behaves slightly differently due to
@@ -1084,35 +1084,53 @@ class diff_match_patch {
     // 'whitespace'.  Since this function's purpose is largely cosmetic,
     // the choice has been made to use each language's native features
     // rather than force total conformity.
-    int score = 0;
-    // One point for non-alphanumeric.
-    if (!traits::is_alnum(one[one.length() - 1]) || !traits::is_alnum(two[0])) {
-      score++;
-      // Two points for whitespace.
-      if (traits::is_space(one[one.length() - 1]) || traits::is_space(two[0])) {
-        score++;
-        // Three points for line breaks.
-
-        typename string_t::const_pointer p1 = one.c_str() + one.length() - 1, p2 = two.c_str();
-        if (is_control(*p1) || is_control(*p2)) {
-          score++;
-          // Four points for blank lines.
-          if (((traits::to_wchar(*p1) == L'\n') && (p1 != one.c_str()) && (traits::to_wchar(*(p1 - 1)) == L'\n'))
-               || ((traits::to_wchar(*(p1 - 1)) == L'\r') && (p1 - 1 != one.c_str()) && (traits::to_wchar(*(p1 - 2)) == L'\n'))) {
-            score++;
-          }
-          else {
-            p1 = p2 + two.length();
-            if (traits::to_wchar(*p2) == L'\r') ++p2;
-            if (p2 != p1 && traits::to_wchar(*p2) == L'\n') {
-              if (++p2 != p1 && traits::to_wchar(*p2) == L'\r') ++p2;
-              if (p2 != p1 && traits::to_wchar(*p2) == L'\n') score++;
-            }
-          }
-        }
+    char_t char1 = one[one.length() - 1];
+    char_t char2 = two[0];
+    bool nonAlphaNumeric1 = !traits::is_alnum(char1);
+    bool nonAlphaNumeric2 = !traits::is_alnum(char2);
+    bool whitespace1 = nonAlphaNumeric1 && traits::is_space(char1);
+    bool whitespace2 = nonAlphaNumeric2 && traits::is_space(char2);
+    bool lineBreak1 = whitespace1 && is_control(char1);
+    bool lineBreak2 = whitespace2 && is_control(char2);
+    bool blankLine1 = false;
+    if (lineBreak1) {
+      typename string_t::const_reverse_iterator p1 = one.rbegin(), p2 = one.rend();
+      if (traits::to_wchar(*p1) == L'\n' && ++p1 != p2) {
+        if (traits::to_wchar(*p1) == L'\r')
+          ++p1;
+        blankLine1 = p1 != p2 && traits::to_wchar(*p1) == L'\n';
       }
     }
-    return score;
+    bool blankLine2 = false;
+    if (lineBreak2) {
+      typename string_t::const_iterator p1 = two.end(), p2 = two.begin();
+      if (traits::to_wchar(*p2) == L'\r')
+        ++p2;
+      if (p2 != p1 && traits::to_wchar(*p2) == L'\n') {
+        if (++p2 != p1 && traits::to_wchar(*p2) == L'\r')
+          ++p2;
+        if (p2 != p1 && traits::to_wchar(*p2) == L'\n')
+          blankLine2 = true;
+      }
+    }
+  
+    if (blankLine1 || blankLine2) {
+      // Five points for blank lines.
+      return 5;
+    } else if (lineBreak1 || lineBreak2) {
+      // Four points for line breaks.
+      return 4;
+    } else if (nonAlphaNumeric1 && !whitespace1 && whitespace2) {
+      // Three points for end of sentences.
+      return 3;
+    } else if (whitespace1 || whitespace2) {
+      // Two points for whitespace.
+      return 2;
+    } else if (nonAlphaNumeric1 || nonAlphaNumeric2) {
+      // One point for non-alphanumeric.
+      return 1;
+    }
+    return 0;
   }
   /**
    * Reduce the number of edits by eliminating operationally trivial equalities.
