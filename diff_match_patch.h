@@ -896,6 +896,8 @@ class diff_match_patch {
         } else {
           length_deletions2 += (*cur_diff).text.length();
         }
+        // Eliminate an equality that is smaller or equal to the edits on both
+        // sides of it.
         if (!lastequality.empty()
             && ((int)lastequality.length()
                 <= std::max(length_insertions1, length_deletions1))
@@ -940,8 +942,9 @@ class diff_match_patch {
     diff_cleanupSemanticLossless(diffs);
 
     // Find any overlaps between deletions and insertions.
-    // e.g: <del>abcxx</del><ins>xxdef</ins>
-    //   -> <del>abc</del>xx<ins>def</ins>
+    // e.g: <del>abcxxx</del><ins>xxxdef</ins>
+    //   -> <del>abc</del>xxx<ins>def</ins>
+    // Only extract an overlap if it is as big as the edit ahead or behind it.
     if ((cur_diff = diffs.begin()) != diffs.end()) {
       for (typename Diffs::iterator prev_diff = cur_diff; ++cur_diff != diffs.end(); prev_diff = cur_diff) {
         if ((*prev_diff).operation == DELETE &&
@@ -949,7 +952,8 @@ class diff_match_patch {
           string_t deletion = (*prev_diff).text;
           string_t insertion = (*cur_diff).text;
           int overlap_length = diff_commonOverlap(deletion, insertion);
-          if (overlap_length != 0) {
+          if (overlap_length >= deletion.size() / 2.0 ||
+              overlap_length >= insertion.size() / 2.0) {
             // Overlap found.  Insert an equality and trim the surrounding edits.
             diffs.insert(cur_diff, Diff(EQUAL, insertion.substr(0, overlap_length)));
             (*prev_diff).text =
