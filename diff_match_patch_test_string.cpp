@@ -148,7 +148,11 @@ class diff_match_patch_test : diff_match_patch<string> {
     assertEquals("diff_commonOverlap: No overlap.", 0, dmp.diff_commonOverlap("123456", "abcd"));
 
     assertEquals("diff_commonOverlap: Overlap.", 3, dmp.diff_commonOverlap("123456xxx", "xxxabcd"));
-  }
+
+    // Some overly clever languages (C#) may treat ligatures as equal to their
+    // component letters.  E.g. U+FB01 == 'fi'
+    assertEquals("diff_commonOverlap: Unicode.", 0, dmp.diff_commonOverlap("fi", "\xEF\xAC\x81i"));
+}
 
   void testDiffHalfmatch() {
     // Detect a halfmatch.
@@ -358,7 +362,11 @@ class diff_match_patch_test : diff_match_patch<string> {
     diffs = diffList(Diff(EQUAL, "xa"), Diff(DELETE, "a"), Diff(EQUAL, "a"));
     dmp.diff_cleanupSemanticLossless(diffs);
     assertEquals("diff_cleanupSemantic: Hitting the end.", diffList(Diff(EQUAL, "xaa"), Diff(DELETE, "a")), diffs);
-  }
+
+    diffs = diffList(Diff(EQUAL, "The xxx. The "), Diff(INSERT, "zzz. The "), Diff(EQUAL, "yyy."));
+    dmp.diff_cleanupSemanticLossless(diffs);
+    assertEquals("diff_cleanupSemantic: Sentence boundaries.", diffList(Diff(EQUAL, "The xxx."), Diff(INSERT, " The zzz."), Diff(EQUAL, " The yyy.")), diffs);
+}
 
   void testDiffCleanupSemantic() {
     // Cleanup semantically trivial equalities.
@@ -392,11 +400,19 @@ class diff_match_patch_test : diff_match_patch<string> {
 
     diffs = diffList(Diff(DELETE, "abcxx"), Diff(INSERT, "xxdef"));
     dmp.diff_cleanupSemantic(diffs);
-    assertEquals("diff_cleanupSemantic: Overlap elimination #1.", diffList(Diff(DELETE, "abc"), Diff(EQUAL, "xx"), Diff(INSERT, "def")), diffs);
+    assertEquals("diff_cleanupSemantic: No overlap elimination.", diffList(Diff(DELETE, "abcxx"), Diff(INSERT, "xxdef")), diffs);
 
-    diffs = diffList(Diff(DELETE, "abcxx"), Diff(INSERT, "xxdef"), Diff(DELETE, "ABCXX"), Diff(INSERT, "XXDEF"));
+    diffs = diffList(Diff(DELETE, "abcxxx"), Diff(INSERT, "xxxdef"));
     dmp.diff_cleanupSemantic(diffs);
-    assertEquals("diff_cleanupSemantic: Overlap elimination #2.", diffList(Diff(DELETE, "abc"), Diff(EQUAL, "xx"), Diff(INSERT, "def"), Diff(DELETE, "ABC"), Diff(EQUAL, "XX"), Diff(INSERT, "DEF")), diffs);
+    assertEquals("diff_cleanupSemantic: Overlap elimination.", diffList(Diff(DELETE, "abc"), Diff(EQUAL, "xxx"), Diff(INSERT, "def")), diffs);
+
+    diffs = diffList(Diff(DELETE, "xxxabc"), Diff(INSERT, "defxxx"));
+    dmp.diff_cleanupSemantic(diffs);
+    assertEquals("diff_cleanupSemantic: Reverse overlap elimination.", diffList(Diff(INSERT, "def"), Diff(EQUAL, "xxx"), Diff(DELETE, "abc")), diffs);
+
+    diffs = diffList(Diff(DELETE, "abcd1212"), Diff(INSERT, "1212efghi"), Diff(EQUAL, "----"), Diff(DELETE, "A3"), Diff(INSERT, "3BC"));
+    dmp.diff_cleanupSemantic(diffs);
+    assertEquals("diff_cleanupSemantic: Two overlap eliminations.", diffList(Diff(DELETE, "abcd"), Diff(EQUAL, "1212"), Diff(INSERT, "efghi"), Diff(EQUAL, "----"), Diff(DELETE, "A"), Diff(EQUAL, "3"), Diff(INSERT, "BC")), diffs);
   }
 
   void testDiffCleanupEfficiency() {
