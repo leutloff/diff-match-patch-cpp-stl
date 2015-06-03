@@ -2349,7 +2349,7 @@ class diff_match_patch {
    * @return Substring.
    */
  private:
-  static inline string_t safeMid(const string_t &str, int pos) {
+  static inline string_t safeMid(const string_t &str, size_t pos) {
     return (pos == str.length()) ? string_t() : str.substr(pos);
   }
 
@@ -2362,7 +2362,7 @@ class diff_match_patch {
    * @return Substring.
    */
  private:
-  static inline string_t safeMid(const string_t &str, int pos, int len) {
+  static inline string_t safeMid(const string_t &str, size_t pos, size_t len) {
     return (pos == str.length()) ? string_t() : str.substr(pos, len);
   }
 
@@ -2408,7 +2408,7 @@ class diff_match_patch {
       c = traits::to_utf32(c, end, u);
       n += u >= 0x10000? 12 : u >= 0x800? 9 : u >= 0x80? 6 : safe[static_cast<unsigned char>(u)]? 1 : 3;
     }
-    if (n == s2.length())
+    if (n == int(s2.length()))
       s1.append(s2);
     else {
       s1.reserve(s1.size() + n);
