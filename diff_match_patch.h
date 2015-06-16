@@ -141,7 +141,7 @@ class diff_match_patch {
         case DELETE:
           return traits::cs(L"DELETE");
         case EQUAL:
-          return traits::cs(L"EQUAtraits::cs(L");
+          return traits::cs(L"EQUAL");
       }
       throw string_t(traits::cs(L"Invalid operation."));
     }
