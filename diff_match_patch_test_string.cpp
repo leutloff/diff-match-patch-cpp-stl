@@ -68,6 +68,13 @@ ostream& operator<<(ostream& o, const wastring& s)
   return o;
 }
 
+std::basic_string<size_t> make_size_t_string(const char * s)
+{
+  std::basic_string<size_t> str;
+  for (const char * c = s; *c != 0; c++)
+    str.push_back(*c);
+  return str;
+}
 
 #define dmp (*this)
 
@@ -185,58 +192,60 @@ class diff_match_patch_test : diff_match_patch<string> {
   void testDiffLinesToChars() {
     // Convert lines down to characters.
     Lines tmpVector, resVector;
-    tmpVector.text1 = string_t("alpha\n");
-    tmpVector.text2 = string_t("beta\n");
-    tmpVector.resize(3);
-    tmpVector[1] = LinePtr(tmpVector.text1.c_str(), tmpVector.text1.length());
-    tmpVector[2] = LinePtr(tmpVector.text2.c_str(), tmpVector.text2.length());
     string_t text1("alpha\nbeta\nalpha\n"), text2("beta\nalpha\nbeta\n");
-    dmp.diff_linesToChars(text1, text2, resVector);
-    assertEquals("diff_linesToChars:", "\1\2\1", "\2\1\2", tmpVector, text1, text2, resVector);
-
-    tmpVector.text1 = string_t("alpha\r\n");
-    tmpVector.text2 = string_t("beta\r\n\r\n");
-    tmpVector.resize(4);
-    tmpVector[1] = LinePtr(tmpVector.text1.c_str(), tmpVector.text1.length());
-    tmpVector[2] = LinePtr(tmpVector.text2.c_str(), tmpVector.text2.length() - 2);
-    tmpVector[3] = LinePtr(tmpVector.text2.c_str() + 6, 2);
-    text1.clear(), text2 = "alpha\r\nbeta\r\n\r\n\r\n";
-    dmp.diff_linesToChars(text1, text2, resVector);
-    assertEquals("diff_linesToChars:", string_t(), "\1\2\3\3", tmpVector, text1, text2, resVector);
-
-    tmpVector.text1 = string_t("a");
-    tmpVector.text2 = string_t("b");
+    tmpVector.text1 = make_size_t_string("\1\2\1");
+    tmpVector.text2 = make_size_t_string("\2\1\2");
     tmpVector.resize(3);
-    tmpVector[1] = LinePtr(tmpVector.text1.c_str(), tmpVector.text1.length());
-    tmpVector[2] = LinePtr(tmpVector.text2.c_str(), tmpVector.text2.length());
-    text1 = "a", text2 = "b";
+    tmpVector[1] = LinePtr(text1.c_str(), 6);
+    tmpVector[2] = LinePtr(text1.c_str() + 6, 5);
+    dmp.diff_linesToChars(text1, text2, resVector);
+    assertEquals("diff_linesToChars:", tmpVector, resVector);
+
+    text1.clear(), text2 = "alpha\r\nbeta\r\n\r\n\r\n";
+    tmpVector.text1.clear();
+    tmpVector.text2 = make_size_t_string("\1\2\3\3");
+    tmpVector.resize(4);
+    tmpVector[1] = LinePtr(text2.c_str(), 7);
+    tmpVector[2] = LinePtr(text2.c_str() + 7, 6);
+    tmpVector[3] = LinePtr(text2.c_str() + 13, 2);
     resVector.clear();
     dmp.diff_linesToChars(text1, text2, resVector);
-    assertEquals("diff_linesToChars:", "\1", "\2", tmpVector, text1, text2, resVector);
+    assertEquals("diff_linesToChars:", tmpVector, resVector);
+
+    text1 = "a", text2 = "b";
+    tmpVector.text1 = make_size_t_string("\1");
+    tmpVector.text2 = make_size_t_string("\2");
+    tmpVector.resize(3);
+    tmpVector[1] = LinePtr(text1.c_str(), text1.length());
+    tmpVector[2] = LinePtr(text2.c_str(), text2.length());
+    resVector.clear();
+    dmp.diff_linesToChars(text1, text2, resVector);
+    assertEquals("diff_linesToChars:", tmpVector, resVector);
 
     // More than 256 to reveal any 8-bit limitations.
     size_t n = 300;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
     basic_stringstream<char_t> lines;
-    string_t chars;
+    tmpVector.text1.clear();
     for (size_t x = 1; x < n + 1; x++) {
       lines << x << traits::eol;
-      tmpVector[x].second = lines.str().size();
-      chars += (wchar_t)x;
+      tmpVector[x].second = lines.tellp();
+      tmpVector.text1.push_back(x);
     }
-    tmpVector.text1 = lines.str();
+    text1 = lines.str();
     for (size_t x = 1, prev = 0; x < n + 1; x++) {
-      tmpVector[x].first = tmpVector.text1.c_str() + prev;
+      tmpVector[x].first =text1.c_str() + prev;
       tmpVector[x].second -= prev;
       prev += tmpVector[x].second;
     }
     assertEquals("diff_linesToChars: More than 256 (setup).", n + 1, tmpVector.size());
-    assertEquals("diff_linesToChars: More than 256 (setup).", n, chars.length());
-    text1 = tmpVector.text1, text2.clear();
+    assertEquals("diff_linesToChars: More than 256 (setup).", n, tmpVector.text1.length());
+    tmpVector.text2.clear();
+    text2.clear();
     resVector.clear();
     dmp.diff_linesToChars(text1, text2, resVector);
-    assertEquals("diff_linesToChars:", chars, "", tmpVector, text1, text2, resVector);
+    assertEquals("diff_linesToChars:", tmpVector, resVector);
   }
 
   void testDiffCharsToLines() {
@@ -246,16 +255,16 @@ class diff_match_patch_test : diff_match_patch<string> {
     assertEquals("diff_charsToLines:", Diff(EQUAL, "a"), Diff(EQUAL, "a"));
 
     // Convert chars up to lines.
-    Diffs diffs;
-    diffs.push_back(Diff(EQUAL, "\1\2\1"));  // ("\u0001\u0002\u0001");
-    diffs.push_back(Diff(INSERT, "\2\1\2"));  // ("\u0002\u0001\u0002");
+    typedef diff_match_patch<std::basic_string<size_t> > line_dmp; 
+    line_dmp::Diffs line_diffs;
+    line_diffs.push_back(line_dmp::Diff(line_dmp::EQUAL, make_size_t_string("\1\2\1")));
+    line_diffs.push_back(line_dmp::Diff(line_dmp::INSERT, make_size_t_string("\2\1\2")));
+    string_t text1("alpha\n"), text2("beta\n");
     Lines tmpVector;
-    tmpVector.text1 = string_t("alpha\n");
-    tmpVector.text2 = string_t("beta\n");
     tmpVector.resize(3);
-    tmpVector[1] = LinePtr(tmpVector.text1.c_str(), tmpVector.text1.length());
-    tmpVector[2] = LinePtr(tmpVector.text2.c_str(), tmpVector.text2.length());
-    dmp.diff_charsToLines(diffs, tmpVector);
+    tmpVector[1] = LinePtr(text1.c_str(), text1.length());
+    tmpVector[2] = LinePtr(text2.c_str(), text2.length());
+    Diffs diffs = dmp.diff_charsToLines(line_diffs, tmpVector);
     assertEquals("diff_charsToLines:", diffList(Diff(EQUAL, "alpha\nbeta\nalpha\n"), Diff(INSERT, "beta\nalpha\nbeta\n")), diffs);
 
     // More than 256 to reveal any 8-bit limitations.
@@ -263,23 +272,24 @@ class diff_match_patch_test : diff_match_patch<string> {
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
     basic_stringstream<char_t> lines;
-    string_t chars;
+    tmpVector.text1.clear();
     for (size_t x = 1; x < n + 1; x++) {
       lines << x << traits::eol;
-      tmpVector[x].second = lines.str().size();
-      chars += (char_t)x;
-    }
-    tmpVector.text1 = lines.str();
+      tmpVector[x].second = lines.tellp();
+      tmpVector.text1.push_back(x);
+   }
+    text1 = lines.str();
     for (size_t x = 1, prev = 0; x < n + 1; x++) {
-      tmpVector[x].first = tmpVector.text1.c_str() + prev;
+      tmpVector[x].first = text1.c_str() + prev;
       tmpVector[x].second -= prev;
       prev += tmpVector[x].second;
     }
     assertEquals("diff_charsToLines: More than 256 (setup).", n + 1, tmpVector.size());
-    assertEquals("diff_charsToLines: More than 256 (setup).", n, chars.length());
-    diffs = diffList(Diff(DELETE, chars));
-    dmp.diff_charsToLines(diffs, tmpVector);
-    assertEquals("diff_charsToLines: More than 256.", diffList(Diff(DELETE, tmpVector.text1)), diffs);
+    assertEquals("diff_charsToLines: More than 256 (setup).", n, tmpVector.text1.length());
+    line_diffs.clear();
+    line_diffs.push_back(line_dmp::Diff(line_dmp::DELETE, tmpVector.text1));
+    diffs = dmp.diff_charsToLines(line_diffs, tmpVector);
+    assertEquals("diff_charsToLines: More than 256.", diffList(Diff(DELETE, text1)), diffs);
   }
 
   void testDiffCleanupMerge() {
@@ -1027,11 +1037,10 @@ class diff_match_patch_test : diff_match_patch<string> {
     cout << strCase << " OK" << endl;
   }
 
-  void assertEquals(const char* strCase, const string_t& text1_1, const string_t& text2_1, const Lines &lines1,
-                                                                const string_t& text1_2, const string_t& text2_2, const Lines &lines2)
+  void assertEquals(const char* strCase, const Lines &lines1, const Lines &lines2)
   {
     bool fail = false;
-    if (text1_1 != text1_2 || text2_1 != text2_2 || lines1.size() != lines2.size())
+    if (lines1.text1 != lines2.text1 || lines1.text2 != lines2.text2 || lines1.size() != lines2.size())
       fail = true;
     else
       for (Lines::const_iterator i = lines1.begin(), j = lines2.begin(); i != lines1.end(); ++i, ++j)
@@ -1039,7 +1048,7 @@ class diff_match_patch_test : diff_match_patch<string> {
 
     if (fail) {
       // Build human readable description of both lists.
-      string_t listString1 = "\"" + text1_1 + "\", \"" + text2_1 + "\", (\"";
+      string_t listString1 = "(\"";
       bool first = true;
       for (Lines::const_iterator i = lines1.begin() + 1; i != lines1.end(); ++i) {
         if (!first) listString1 += "\", \"";
@@ -1047,7 +1056,7 @@ class diff_match_patch_test : diff_match_patch<string> {
         first = false;
       }
       listString1 += "\")";
-      string_t listString2 = "\"" + text1_2 + "\", \"" + text2_2 + "\", (\"";
+      string_t listString2 = "(\"";
       first = true;
       for (Lines::const_iterator j = lines2.begin() + 1; j != lines2.end(); ++j) {
         if (!first) listString2 += "\", \"";
