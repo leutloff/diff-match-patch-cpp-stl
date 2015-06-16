@@ -214,8 +214,8 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     dmp.diff_linesToChars(text1, text2, resVector);
     assertEquals("diff_linesToChars:", "\1", "\2", tmpVector, text1, text2, resVector);
 
-    // More than 256 to reveal any 8-bit limitations.
-    size_t n = 300;
+    // More than 65536 to reveal any 16-bit limitations.
+    size_t n = 70000;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
     basic_stringstream<char_t> lines;
@@ -231,8 +231,8 @@ class diff_match_patch_test : diff_match_patch<wastring> {
       tmpVector[x].second -= prev;
       prev += tmpVector[x].second;
     }
-    assertEquals("diff_linesToChars: More than 256 (setup).", n + 1, tmpVector.size());
-    assertEquals("diff_linesToChars: More than 256 (setup).", n, chars.length());
+    assertEquals("diff_linesToChars: More than 65536 (setup).", n + 1, tmpVector.size());
+    assertEquals("diff_linesToChars: More than 65536 (setup).", n, chars.length());
     text1 = tmpVector.text1, text2.clear();
     resVector.clear();
     dmp.diff_linesToChars(text1, text2, resVector);
@@ -258,8 +258,8 @@ class diff_match_patch_test : diff_match_patch<wastring> {
     dmp.diff_charsToLines(diffs, tmpVector);
     assertEquals("diff_charsToLines:", diffList(Diff(EQUAL, "alpha\nbeta\nalpha\n"), Diff(INSERT, "beta\nalpha\nbeta\n")), diffs);
 
-    // More than 256 to reveal any 8-bit limitations.
-    size_t n = 300;
+    // More than 65536 to reveal any 16-bit limitations.
+    size_t n = 70000;
     tmpVector.resize(n + 1);
     tmpVector[0].second = 0;
     basic_stringstream<char_t> lines;
@@ -275,11 +275,11 @@ class diff_match_patch_test : diff_match_patch<wastring> {
       tmpVector[x].second -= prev;
       prev += tmpVector[x].second;
     }
-    assertEquals("diff_linesToChars: More than 256 (setup).", n + 1, tmpVector.size());
-    assertEquals("diff_linesToChars: More than 256 (setup).", n, chars.length());
+    assertEquals("diff_charsToLines: More than 65536 (setup).", n + 1, tmpVector.size());
+    assertEquals("diff_charsToLines: More than 65536 (setup).", n, chars.length());
     diffs = diffList(Diff(DELETE, chars));
     dmp.diff_charsToLines(diffs, tmpVector);
-    assertEquals("diff_charsToLines: More than 256.", diffList(Diff(DELETE, tmpVector.text1)), diffs);
+    assertEquals("diff_charsToLines: More than 65536.", diffList(Diff(DELETE, tmpVector.text1)), diffs);
   }
 
   void testDiffCleanupMerge() {

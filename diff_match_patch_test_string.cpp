@@ -85,7 +85,7 @@ class diff_match_patch_test : diff_match_patch<string> {
       testDiffCommonOverlap();
       testDiffHalfmatch();
       testDiffLinesToChars();
-      //TODO testDiffCharsToLines();
+      testDiffCharsToLines();
       testDiffCleanupMerge();
       testDiffCleanupSemanticLossless();
       testDiffCleanupSemantic();
@@ -275,8 +275,8 @@ class diff_match_patch_test : diff_match_patch<string> {
       tmpVector[x].second -= prev;
       prev += tmpVector[x].second;
     }
-    assertEquals("diff_linesToChars: More than 256 (setup).", n + 1, tmpVector.size());
-    assertEquals("diff_linesToChars: More than 256 (setup).", n, chars.length());
+    assertEquals("diff_charsToLines: More than 256 (setup).", n + 1, tmpVector.size());
+    assertEquals("diff_charsToLines: More than 256 (setup).", n, chars.length());
     diffs = diffList(Diff(DELETE, chars));
     dmp.diff_charsToLines(diffs, tmpVector);
     assertEquals("diff_charsToLines: More than 256.", diffList(Diff(DELETE, tmpVector.text1)), diffs);
