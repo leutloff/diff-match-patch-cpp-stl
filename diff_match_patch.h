@@ -769,7 +769,7 @@ class diff_match_patch {
         return best;
       }
       length += found;
-      if (found == 0 || right(text1_trunc, length) == right(text2_trunc, length)) {
+      if (found == 0 || right(text1_trunc, length) == text2_trunc.substr(0, length)) {
         best = length;
         length++;
       }
