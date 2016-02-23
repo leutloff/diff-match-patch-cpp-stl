@@ -171,9 +171,9 @@ class diff_match_patch {
     }
 
     /**
-     * Emmulate GNU diff's format.
+     * Emulate GNU diff's format.
      * Header: @@ -382,8 +481,9 @@
-     * Indicies are printed as 1-based, not 0-based.
+     * Indices are printed as 1-based, not 0-based.
      * @return The GNU diff string
      */
     string_t toString() const {
@@ -1261,7 +1261,7 @@ class diff_match_patch {
             std::advance(prev_diff, -(count_delete + count_insert));
             diffs.erase(prev_diff, cur_diff);
             if (count_delete != 0 && count_insert != 0) {
-              // Factor out any common prefixies.
+              // Factor out any common prefixes.
               commonlength = diff_commonPrefix(text_insert, text_delete);
               if (commonlength != 0) {
                 if (cur_diff != diffs.begin()) {
@@ -1276,7 +1276,7 @@ class diff_match_patch {
                 text_insert = safeMid(text_insert, commonlength);
                 text_delete = safeMid(text_delete, commonlength);
               }
-              // Factor out any common suffixies.
+              // Factor out any common suffixes.
               commonlength = diff_commonSuffix(text_insert, text_delete);
               if (commonlength != 0) {
                 (*cur_diff).text = safeMid(text_insert, text_insert.length()
@@ -2343,7 +2343,7 @@ class diff_match_patch {
 
   /**
    * A safer version of string_t.mid(pos).  This one returns "" instead of
-   * null when the postion equals the string length.
+   * null when the position equals the string length.
    * @param str String to take a substring from.
    * @param pos Position to start the substring from.
    * @return Substring.
@@ -2355,7 +2355,7 @@ class diff_match_patch {
 
   /**
    * A safer version of string_t.mid(pos, len).  This one returns "" instead of
-   * null when the postion equals the string length.
+   * null when the position equals the string length.
    * @param str String to take a substring from.
    * @param pos Position to start the substring from.
    * @param len Length of substring.
@@ -2524,7 +2524,7 @@ class diff_match_patch {
 template <class char_t, class utf32_type = unsigned>
 struct diff_match_patch_utf32_direct {
   typedef utf32_type utf32_t;
-  template <class iterator> static iterator to_utf32(iterator i, iterator end, utf32_t& u)
+  template <class iterator> static iterator to_utf32(iterator i, iterator /*end*/, utf32_t& u)
   {
     u = *i++;
     return i;
@@ -2539,7 +2539,10 @@ struct diff_match_patch_utf32_direct {
 template <class char_t, class utf32_type = unsigned>
 struct diff_match_patch_utf32_from_utf16 {
   typedef utf32_type utf32_t;
-  static const unsigned UTF16_SURROGATE_MIN = 0xD800u, UTF16_SURROGATE_MAX = 0xDFFFu, UTF16_HIGH_SURROGATE_MAX = 0xDBFFu, UTF16_LOW_SURROGATE_MIN = 0xDC00u;
+  static const unsigned UTF16_SURROGATE_MIN = 0xD800u;
+  static const unsigned UTF16_SURROGATE_MAX = 0xDFFFu;
+  static const unsigned UTF16_HIGH_SURROGATE_MAX = 0xDBFFu;
+  static const unsigned UTF16_LOW_SURROGATE_MIN = 0xDC00u;
   static const unsigned UTF16_SURROGATE_OFFSET = (UTF16_SURROGATE_MIN << 10) + UTF16_HIGH_SURROGATE_MAX - 0xFFFFu;
   template <class iterator> static iterator to_utf32(iterator i, iterator end, utf32_t& u)
   {
