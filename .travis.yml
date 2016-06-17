@@ -2,8 +2,12 @@ language: cpp
 compiler:
   - gcc
   - clang
+# trusty (14.04) is now used instead of precise (12.04)
+sudo: required
+dist: trusty
 before_script:
   - mkdir build
   - cd build
+  - cmake --version
   - cmake ..
 script: make && ./diff_match_patch_test_string && ./diff_match_patch_test_wstring

@@ -19,3 +19,6 @@ project (diff-match-patch-cpp-stl CXX)
 add_executable(diff_match_patch_test_wstring diff_match_patch_test_wstring.cpp)
 
 add_executable(diff_match_patch_test_string diff_match_patch_test_string.cpp)
+
+set_property(TARGET diff_match_patch_test_wstring PROPERTY CXX_STANDARD 11)
+set_property(TARGET diff_match_patch_test_string PROPERTY CXX_STANDARD 11)
