@@ -1232,6 +1232,8 @@ int main() {
   cout << "Starting diff_match_patch unit tests." << endl;
   dmp_test.run_all_tests();
   cout << "Done." << endl;
+  -- Test sj.
+  cout << "Test" << endl;
   return 0;
 }
 
