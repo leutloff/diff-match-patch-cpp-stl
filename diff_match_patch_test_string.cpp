@@ -21,7 +21,7 @@
  * http://code.google.com/p/google-diff-match-patch/
  */
 
-#include "diff_match_patch.h"
+include "diff_match_patch.h"
 #include <cstring>
 #include <iomanip>
 #include <iostream>
