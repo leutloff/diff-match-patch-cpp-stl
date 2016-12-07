@@ -282,7 +282,7 @@ class diff_match_patch_test : diff_match_patch<string> {
     assertEquals("diff_charsToLines: More than 256.", diffList(Diff(DELETE, tmpVector.text1)), diffs);
   }
 
-  void testDiffCleanupMerge() {
+  oid testDiffCleanupMerge() {
     // Cleanup a messy diff.
     Diffs diffs;
     dmp.diff_cleanupMerge(diffs);
