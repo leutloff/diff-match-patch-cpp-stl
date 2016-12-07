@@ -1,7 +1,7 @@
 diff-match-patch-cpp-stl
 ========================
 
-[![Build Status](https://travis-ci.org/unius1004/diff-match-patch-cpp-stl.png)](https://travis-ci.org/leutloff/diff-match-patch-cpp-stl)
+[![Build Status](https://travis-ci.org/unius1004/diff-match-patch-cpp-stl.png)](https://travis-ci.org/unius1004/diff-match-patch-cpp-stl)
 
 C++ STL variant of https://code.google.com/p/google-diff-match-patch.
 
