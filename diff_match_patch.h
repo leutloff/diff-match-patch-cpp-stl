@@ -294,6 +294,8 @@ class diff_match_patch {
    * @param Linked List of Diff objects.
    */
  private:
+  template<typename string2, typename traits2> friend class diff_match_patch;
+
   static void diff_main(const string_t &text1, const string_t &text2, bool checklines, clock_t deadline, Diffs& diffs) {
     diffs.clear();
 
@@ -419,10 +421,12 @@ class diff_match_patch {
     Lines linearray;
     diff_linesToChars(text1, text2, linearray);
 
-    diff_main(text1, text2, false, deadline, diffs);
+    diff_match_patch<std::basic_string<size_t> > line_diff_match_patch;
+    diff_match_patch<std::basic_string<size_t> >::Diffs line_diffs;
+    line_diff_match_patch.diff_main(linearray.text1, linearray.text2, false, deadline, line_diffs);
 
     // Convert the diff back to original text.
-    diff_charsToLines(diffs, linearray);
+    diffs = diff_charsToLines(line_diffs, linearray);
     // Eliminate freak matches (e.g. blank lines)
     diff_cleanupSemantic(diffs);
 
@@ -630,19 +634,18 @@ class diff_match_patch {
     bool operator<(const LinePtr& p) const
       { return this->second < p.second? true : this->second > p.second? false : string_t::traits_type::compare(this->first, p.first, this->second) < 0; }
   };
-  struct Lines : std::vector<LinePtr> { string_t text1, text2; };
+  struct Lines : std::vector<LinePtr> { std::basic_string<size_t> text1, text2; };
 
-  static void diff_linesToChars(string_t &text1, string_t &text2, Lines& lineArray) {
+  static void diff_linesToChars(const string_t &text1, const string_t &text2, Lines& lineArray) {
     std::map<LinePtr, size_t> lineHash;
-    lineArray.text1.swap(text1), lineArray.text2.swap(text2);
     // e.g. linearray[4] == "Hello\n"
     // e.g. linehash.get("Hello\n") == 4
 
     // "\x00" is a valid character, but various debuggers don't like it.
     // So we'll insert a junk entry to avoid generating a null character.
 
-    text1 = diff_linesToCharsMunge(lineArray.text1, lineHash);
-    text2 = diff_linesToCharsMunge(lineArray.text2, lineHash);
+    lineArray.text1 = diff_linesToCharsMunge(text1, lineHash);
+    lineArray.text2 = diff_linesToCharsMunge(text2, lineHash);
 
     lineArray.resize(lineHash.size() + 1);
     for (typename std::map<LinePtr, size_t>::const_iterator i = lineHash.begin(); i != lineHash.end(); ++i)
@@ -657,8 +660,8 @@ class diff_match_patch {
    * @return Encoded string.
    */
  private:
-  static string_t diff_linesToCharsMunge(const string_t &text, std::map<LinePtr, size_t> &lineHash) {
-    string_t chars;
+  static std::basic_string<size_t> diff_linesToCharsMunge(const string_t &text, std::map<LinePtr, size_t> &lineHash) {
+    std::basic_string<size_t> chars;
     // Walk the text, pulling out a substring for each line.
     // text.split('\n') would would temporarily double our memory footprint.
     // Modifying text would create many large strings to garbage collect.
@@ -666,7 +669,7 @@ class diff_match_patch {
     for (typename string_t::const_pointer lineStart = text.c_str(), textEnd = lineStart + text.size(); lineStart < textEnd; lineStart += lineLen + 1) {
       lineLen = next_token(text, traits::from_wchar(L'\n'), lineStart);
       if (lineStart + lineLen == textEnd) --lineLen;
-      chars += (char_t)(*lineHash.insert(std::make_pair(LinePtr(lineStart, lineLen + 1), lineHash.size() + 1)).first).second;
+      chars.push_back((*lineHash.insert(std::make_pair(LinePtr(lineStart, lineLen + 1), lineHash.size() + 1)).first).second);
     }
     return chars;
   }
@@ -678,15 +681,17 @@ class diff_match_patch {
    * @param lineArray List of pointers to unique strings.
    */
  private:
-  static void diff_charsToLines(Diffs &diffs, const Lines& lineArray) {
-    for (typename Diffs::iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
+  static Diffs diff_charsToLines(const typename diff_match_patch<std::basic_string<size_t> >::Diffs &line_diffs, const Lines& lineArray) {
+    Diffs diffs;
+    for (typename diff_match_patch<std::basic_string<size_t> >::Diffs::const_iterator cur_diff = line_diffs.begin(); cur_diff != line_diffs.end(); ++cur_diff) {
       string_t text;
-      for (int y = 0; y < (int)(*cur_diff).text.length(); y++) {
-        const LinePtr& lp = lineArray[static_cast<size_t>((*cur_diff).text[y])];
+      for (size_t y = 0; y < cur_diff->text.length(); y++) {
+        const LinePtr& lp = lineArray[cur_diff->text[y]];
         text.append(lp.first, lp.second);
       }
-      (*cur_diff).text.swap(text);
+      diffs.push_back(Diff(static_cast<Operation>(cur_diff->operation), text));
     }
+    return diffs;
   }
 
   /**
@@ -2592,5 +2597,16 @@ template <> struct diff_match_patch_traits<char> : diff_match_patch_utf32_direct
   static const char tab = '\t';
 };
 
+template <> struct diff_match_patch_traits<size_t> : diff_match_patch_utf32_direct<size_t> {
+  static bool is_alnum(size_t c) { return false; }
+  static bool is_digit(size_t c) { return false; }
+  static bool is_space(size_t c) { return false; }
+  static int to_int(const char* s) { return 0; }
+  static size_t from_wchar(wchar_t c) { return static_cast<size_t>(c); }
+  static wchar_t to_wchar(size_t c) { return static_cast<wchar_t>(c); }
+  static std::basic_string<size_t> cs(const wchar_t* s) { return std::basic_string<size_t>(s, s + wcslen(s)); }
+  static const size_t eol = '\n';
+  static const size_t tab = '\t';
+};
 
 #endif // DIFF_MATCH_PATCH_H
