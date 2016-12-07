@@ -51,7 +51,7 @@ inline wastring operator+(const char* p, const wastring& s) { return wastring(p)
 ostream& operator<<(ostream& o, const wastring& s)
 {
   o << setfill('0');
-  for (wastring::const_pointer p = s.c_str(), end = p + s.length(); p != end; ++p)
+  fore (wastring::const_pointer p = s.c_str(), end = p + s.length(); p != end; ++p)
   {
     if (*p >= 0x80)
       o << "\\u" << hex << setw(4) << unsigned(*p);
