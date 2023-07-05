@@ -281,6 +281,35 @@ class diff_match_patch {
     return diffs;
   }
 
+  long long diff_main_only_count(const string_t &text1, const string_t &text2, bool checklines = true, int max_diff = -1) {
+    clock_t deadline;
+    if (Diff_Timeout <= 0) {
+      deadline = std::numeric_limits<clock_t>::max();
+    } else {
+      deadline = clock() + (clock_t)(Diff_Timeout * CLOCKS_PER_SEC);
+    }
+
+    long long diff_count = 0;
+
+    // Check for equality (speedup).
+    if (text1 != text2) {
+      // Trim off common prefix (speedup).
+      int commonlength_prefix = diff_commonPrefix(text1, text2);
+      string_t textChopped1 = text1.substr(commonlength_prefix);
+      string_t textChopped2 = text2.substr(commonlength_prefix);
+
+      // Trim off common suffix (speedup).
+      int commonlength_suffix = diff_commonSuffix(textChopped1, textChopped2);
+      textChopped1 = textChopped1.substr(0, textChopped1.length() - commonlength_suffix);
+      textChopped2 = textChopped2.substr(0, textChopped2.length() - commonlength_suffix);
+
+      // Compute the diff on the middle block.
+      diff_count += diff_compute_only_count(textChopped1, textChopped2, deadline, max_diff);
+    }
+
+    return diff_count;
+  }
+
   /**
    * Find the differences between two texts.  Simplifies the problem by
    * stripping any common prefix or suffix off the texts before diffing.
@@ -404,6 +433,37 @@ class diff_match_patch {
     diff_bisect(text1, text2, deadline, diffs);
   }
 
+  static long long diff_compute_only_count(string_t text1, string_t text2, clock_t deadline, int max_diff = -1) {
+    if (text1.empty()) {
+      // Just add some text (speedup).
+      return text2.size();
+    }
+
+    if (text2.empty()) {
+      // Just delete some text (speedup).
+      return text1.size();
+    }
+
+    {
+      const string_t& longtext = text1.length() > text2.length() ? text1 : text2;
+      const string_t& shorttext = text1.length() > text2.length() ? text2 : text1;
+      const size_t i = longtext.find(shorttext);
+      if (i != string_t::npos) {
+        // Shorter text is inside the longer text (speedup).
+        return longtext.size() - shorttext.size();
+      }
+
+      if (shorttext.length() == 1) {
+        // Single character string.
+        // After the previous speedup, the character can't be an equality.
+        return 1 + longtext.size();
+      }
+      // Garbage collect longtext and shorttext by scoping out.
+    }
+
+    return diff_bisect_only_count(text1, text2, deadline, max_diff);
+  }
+
   /**
    * Do a quick line-level diff on both strings, then rediff the parts for
    * greater accuracy.
@@ -481,6 +541,7 @@ class diff_match_patch {
     diff_bisect(text1, text2, deadline, diffs);
     return diffs;
   }
+
  private:
   static void diff_bisect(const string_t &text1, const string_t &text2, clock_t deadline, Diffs& diffs) {
     // Cache the text lengths to prevent multiple calls.
@@ -489,10 +550,12 @@ class diff_match_patch {
     const int max_d = (text1_length + text2_length + 1) / 2;
     const int v_offset = max_d;
     const int v_length = 2 * max_d;
-    std::vector<int> v1(v_length, -1), 
-                     v2(v_length, -1);
-    v1[v_offset + 1] = 0;
-    v2[v_offset + 1] = 0;
+    std::vector<int> _v1_back(v_length, -1),
+                     _v2_back(v_length, -1);
+    int * const v1 = _v1_back.data() + v_offset;
+    int * const v2 = _v2_back.data() + v_offset;
+    v1[1] = 0;
+    v2[1] = 0;
     const int delta = text1_length - text2_length;
     // If the total number of characters is odd, then the front path will
     // collide with the reverse path.
@@ -510,13 +573,14 @@ class diff_match_patch {
       }
 
       // Walk the front path one step.
+      // R: k1 is the rank of a diagonal
       for (int k1 = -d + k1start; k1 <= d - k1end; k1 += 2) {
-        const int k1_offset = v_offset + k1;
+        // R: This is at the middle, first
         int x1;
-        if (k1 == -d || (k1 != d && v1[k1_offset - 1] < v1[k1_offset + 1])) {
-          x1 = v1[k1_offset + 1];
+        if (k1 == -d || (k1 != d && v1[k1 - 1] < v1[k1 + 1])) {
+          x1 = v1[k1 + 1];
         } else {
-          x1 = v1[k1_offset - 1] + 1;
+          x1 = v1[k1 - 1] + 1;
         }
         int y1 = x1 - k1;
         while (x1 < text1_length && y1 < text2_length
@@ -524,7 +588,7 @@ class diff_match_patch {
           x1++;
           y1++;
         }
-        v1[k1_offset] = x1;
+        v1[k1] = x1;
         if (x1 > text1_length) {
           // Ran off the right of the graph.
           k1end += 2;
@@ -532,8 +596,8 @@ class diff_match_patch {
           // Ran off the bottom of the graph.
           k1start += 2;
         } else if (front) {
-          int k2_offset = v_offset + delta - k1;
-          if (k2_offset >= 0 && k2_offset < v_length && v2[k2_offset] != -1) {
+          int k2_offset = delta - k1;
+          if (k2_offset + v_offset >= 0 && k2_offset + v_offset < v_length && v2[k2_offset] != -1) {
             // Mirror x2 onto top-left coordinate system.
             int x2 = text1_length - v2[k2_offset];
             if (x1 >= x2) {
@@ -547,12 +611,11 @@ class diff_match_patch {
 
       // Walk the reverse path one step.
       for (int k2 = -d + k2start; k2 <= d - k2end; k2 += 2) {
-        const int k2_offset = v_offset + k2;
         int x2;
-        if (k2 == -d || (k2 != d && v2[k2_offset - 1] < v2[k2_offset + 1])) {
-          x2 = v2[k2_offset + 1];
+        if (k2 == -d || (k2 != d && v2[k2 - 1] < v2[k2 + 1])) {
+          x2 = v2[k2 + 1];
         } else {
-          x2 = v2[k2_offset - 1] + 1;
+          x2 = v2[k2 - 1] + 1;
         }
         int y2 = x2 - k2;
         while (x2 < text1_length && y2 < text2_length
@@ -560,7 +623,7 @@ class diff_match_patch {
           x2++;
           y2++;
         }
-        v2[k2_offset] = x2;
+        v2[k2] = x2;
         if (x2 > text1_length) {
           // Ran off the left of the graph.
           k2end += 2;
@@ -568,10 +631,10 @@ class diff_match_patch {
           // Ran off the top of the graph.
           k2start += 2;
         } else if (!front) {
-          int k1_offset = v_offset + delta - k2;
-          if (k1_offset >= 0 && k1_offset < v_length && v1[k1_offset] != -1) {
+          int k1_offset = delta - k2;
+          if (k1_offset + v_offset >= 0 && k1_offset + v_offset < v_length && v1[k1_offset] != -1) {
             int x1 = v1[k1_offset];
-            int y1 = v_offset + x1 - k1_offset;
+            int y1 = x1 - k1_offset;
             // Mirror x2 onto top-left coordinate system.
             x2 = text1_length - x2;
             if (x1 >= x2) {
@@ -588,6 +651,88 @@ class diff_match_patch {
     diffs.clear();
     diffs.push_back(Diff(DELETE, text1));
     diffs.push_back(Diff(INSERT, text2));
+  }
+
+  typedef int LL;
+
+  static long long diff_bisect_only_count(string_t &text1, string_t &text2, clock_t deadline, int max_diff = -1) {
+    LL text1_len = text1.size(); 
+    LL text2_len = text2.size();
+    LL *_v1 = new LL[(text1_len + text2_len) * 2];
+    LL v_off = text1_len + text2_len;
+    LL *v1 = _v1 + v_off; 
+
+    for (LL i = -v_off; i < 0; i++) {
+      v1[i] = -1;
+    }
+    for (LL i = 0; i < v_off; i++) {
+      v1[i] = 0;
+    }
+
+    // Solve for k == 0
+    {
+      LL x = 0, y = 0;
+      while (text1[x] == text2[y]) {
+        x++;
+        y++;
+      }
+      v1[0] = x;
+
+      // The texts are equal
+      if (x == text1_len) {
+        return 0;
+      }
+    }
+
+    LL d_max = text1_len + text2_len;
+    LL len_min = text1_len;
+    LL len_max = text2_len;
+    LL kstart = 0;
+    LL kend = 0;
+
+    if (max_diff != -1) {
+      d_max = std::min(max_diff, d_max);
+    }
+
+    for (LL d = 1; d <= d_max; d++) {
+      if (clock() > deadline) {
+        break;
+      }
+
+      for (LL k = -d + kstart; k <= d - kend; k += 2) {
+        LL x;
+        if (v1[k - 1] >= v1[k + 1]) {
+          x = v1[k - 1] + 1;
+        } else {
+          x = v1[k + 1];
+        }
+
+        LL y = x - k;
+
+        while (x < text1_len && y < text2_len && text1[x] == text2[y]) {
+          x++;
+          y++;
+        }
+
+        v1[k] = x;
+        if (x > text1_len) {
+          kend += 2;
+        } else if (y > text2_len) {
+          kstart += 2;
+        }
+      }
+
+      if (v1[text1_len - text2_len] == text1_len) {
+        delete _v1;
+        return d;
+      }
+    }
+
+    delete _v1;
+
+    // Diff took too long and hit the deadline or
+    // number of diffs equals number of characters, no commonality at all.
+    return text1_len + text2_len;
   }
 
   /**
