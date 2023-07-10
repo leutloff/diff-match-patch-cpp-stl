@@ -657,6 +657,10 @@ class diff_match_patch {
     LL text2_len = text2.size();
     LL *_v1 = new LL[(text1_len + text2_len) * 2];
     LL v_off = text1_len + text2_len;
+    // Use an offset from the real array, in order to use negative indexes
+    // v1[i] == x means that, for a given depth (or difference) d, the furthest path that ends
+    //  on the i-th diagonal, ends at the coordinates (x, d - x)
+    // v1 keeps track of the longest path for each diagonal
     LL *v1 = _v1 + v_off; 
 
     for (LL i = -v_off; i < 0; i++) {
@@ -666,7 +670,10 @@ class diff_match_patch {
       v1[i] = 0;
     }
 
-    // Solve for k == 0
+    // Solve for d == 0
+    // At the beginning, the path can only end on the first diagonal (indexed 0). Moving away from
+    //  the diagonal (horizonally or vertically) adds cost to the difference d. But at this step,
+    //  we only care about the paths with d = 0.
     {
       LL x = 0, y = 0;
       while (text1[x] == text2[y]) {
@@ -691,11 +698,17 @@ class diff_match_patch {
       d_max = std::min(max_diff, d_max);
     }
 
+    // Here, d refers to the numbers of differences, i.e. additions or deletions of one character.
+    // Perform a BFS-like algorithm, where we compute all the paths with a given depth. At each
+    //  step, increase the depth d by 1. Use the info about depth d-1 to find the paths of depth d.
+    // Both the info at step d-1 and step d are stored in v1. That's because each time we update
+    //  values at the index of a particular parity, either even or odd, alternating.
     for (LL d = 1; d <= d_max; d++) {
       if (clock() > deadline) {
         break;
       }
 
+      // Iterate through each diagonal k, of a particular parity.
       for (LL k = -d + kstart; k <= d - kend; k += 2) {
         LL x;
         if (v1[k - 1] >= v1[k + 1]) {
@@ -727,7 +740,7 @@ class diff_match_patch {
 
     delete _v1;
 
-    // Diff took too long and hit the deadline or
+    // Diff took too long or exceeded the max_diff limit,
     // number of diffs equals number of characters, no commonality at all.
     return text1_len + text2_len;
   }
