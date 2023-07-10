@@ -541,7 +541,6 @@ class diff_match_patch {
     diff_bisect(text1, text2, deadline, diffs);
     return diffs;
   }
-
  private:
   static void diff_bisect(const string_t &text1, const string_t &text2, clock_t deadline, Diffs& diffs) {
     // Cache the text lengths to prevent multiple calls.
@@ -550,12 +549,10 @@ class diff_match_patch {
     const int max_d = (text1_length + text2_length + 1) / 2;
     const int v_offset = max_d;
     const int v_length = 2 * max_d;
-    std::vector<int> _v1_back(v_length, -1),
-                     _v2_back(v_length, -1);
-    int * const v1 = _v1_back.data() + v_offset;
-    int * const v2 = _v2_back.data() + v_offset;
-    v1[1] = 0;
-    v2[1] = 0;
+    std::vector<int> v1(v_length, -1), 
+                     v2(v_length, -1);
+    v1[v_offset + 1] = 0;
+    v2[v_offset + 1] = 0;
     const int delta = text1_length - text2_length;
     // If the total number of characters is odd, then the front path will
     // collide with the reverse path.
@@ -573,14 +570,13 @@ class diff_match_patch {
       }
 
       // Walk the front path one step.
-      // R: k1 is the rank of a diagonal
       for (int k1 = -d + k1start; k1 <= d - k1end; k1 += 2) {
-        // R: This is at the middle, first
+        const int k1_offset = v_offset + k1;
         int x1;
-        if (k1 == -d || (k1 != d && v1[k1 - 1] < v1[k1 + 1])) {
-          x1 = v1[k1 + 1];
+        if (k1 == -d || (k1 != d && v1[k1_offset - 1] < v1[k1_offset + 1])) {
+          x1 = v1[k1_offset + 1];
         } else {
-          x1 = v1[k1 - 1] + 1;
+          x1 = v1[k1_offset - 1] + 1;
         }
         int y1 = x1 - k1;
         while (x1 < text1_length && y1 < text2_length
@@ -588,7 +584,7 @@ class diff_match_patch {
           x1++;
           y1++;
         }
-        v1[k1] = x1;
+        v1[k1_offset] = x1;
         if (x1 > text1_length) {
           // Ran off the right of the graph.
           k1end += 2;
@@ -596,8 +592,8 @@ class diff_match_patch {
           // Ran off the bottom of the graph.
           k1start += 2;
         } else if (front) {
-          int k2_offset = delta - k1;
-          if (k2_offset + v_offset >= 0 && k2_offset + v_offset < v_length && v2[k2_offset] != -1) {
+          int k2_offset = v_offset + delta - k1;
+          if (k2_offset >= 0 && k2_offset < v_length && v2[k2_offset] != -1) {
             // Mirror x2 onto top-left coordinate system.
             int x2 = text1_length - v2[k2_offset];
             if (x1 >= x2) {
@@ -611,11 +607,12 @@ class diff_match_patch {
 
       // Walk the reverse path one step.
       for (int k2 = -d + k2start; k2 <= d - k2end; k2 += 2) {
+        const int k2_offset = v_offset + k2;
         int x2;
-        if (k2 == -d || (k2 != d && v2[k2 - 1] < v2[k2 + 1])) {
-          x2 = v2[k2 + 1];
+        if (k2 == -d || (k2 != d && v2[k2_offset - 1] < v2[k2_offset + 1])) {
+          x2 = v2[k2_offset + 1];
         } else {
-          x2 = v2[k2 - 1] + 1;
+          x2 = v2[k2_offset - 1] + 1;
         }
         int y2 = x2 - k2;
         while (x2 < text1_length && y2 < text2_length
@@ -623,7 +620,7 @@ class diff_match_patch {
           x2++;
           y2++;
         }
-        v2[k2] = x2;
+        v2[k2_offset] = x2;
         if (x2 > text1_length) {
           // Ran off the left of the graph.
           k2end += 2;
@@ -631,10 +628,10 @@ class diff_match_patch {
           // Ran off the top of the graph.
           k2start += 2;
         } else if (!front) {
-          int k1_offset = delta - k2;
-          if (k1_offset + v_offset >= 0 && k1_offset + v_offset < v_length && v1[k1_offset] != -1) {
+          int k1_offset = v_offset + delta - k2;
+          if (k1_offset >= 0 && k1_offset < v_length && v1[k1_offset] != -1) {
             int x1 = v1[k1_offset];
-            int y1 = x1 - k1_offset;
+            int y1 = v_offset + x1 - k1_offset;
             // Mirror x2 onto top-left coordinate system.
             x2 = text1_length - x2;
             if (x1 >= x2) {
