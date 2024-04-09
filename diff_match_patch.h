@@ -682,7 +682,8 @@ class diff_match_patch {
     for (typename Diffs::iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
       string_t text;
       for (int y = 0; y < (int)(*cur_diff).text.length(); y++) {
-        const LinePtr& lp = lineArray[static_cast<size_t>((*cur_diff).text[y])];
+          typedef typename std::make_unsigned<typename string_t::value_type>::type unsigned_value_type;
+          const LinePtr& lp = lineArray[static_cast<size_t>(static_cast<unsigned_value_type>((*cur_diff).text[y]))];
         text.append(lp.first, lp.second);
       }
       (*cur_diff).text.swap(text);
