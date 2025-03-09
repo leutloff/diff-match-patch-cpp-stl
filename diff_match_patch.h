@@ -85,12 +85,12 @@ class diff_match_patch {
 
   /**-
   * The data structure representing a diff is a Linked list of Diff objects:
-  * {Diff(Operation.DELETE, "Hello"), Diff(Operation.INSERT, "Goodbye"),
-  *  Diff(Operation.EQUAL, " world.")}
+  * {Diff(Operation.OP_DELETE, "Hello"), Diff(Operation.OP_INSERT, "Goodbye"),
+  *  Diff(Operation.OP_EQUAL, " world.")}
   * which means: delete "Hello", add "Goodbye" and keep " world."
   */
   enum Operation {
-    DELETE, INSERT, EQUAL
+    OP_DELETE, OP_INSERT, OP_EQUAL
   };
 
   /**
@@ -99,14 +99,14 @@ class diff_match_patch {
   class Diff {
    public:
     Operation operation;
-    // One of: INSERT, DELETE or EQUAL.
+    // One of: OP_INSERT, OP_DELETE or OP_EQUAL.
 
     string_t text;
     // The text associated with this diff operation.
 
     /**
      * Constructor.  Initializes the diff with the provided values.
-     * @param operation One of INSERT, DELETE or EQUAL.
+     * @param operation One of OP_INSERT, OP_DELETE or OP_EQUAL.
      * @param text The text being applied.
      */
     Diff(Operation _operation, const string_t &_text) : operation(_operation), text(_text) {}
@@ -136,12 +136,12 @@ class diff_match_patch {
 
     static string_t strOperation(Operation op) {
       switch (op) {
-        case INSERT:
-          return traits::cs(L"INSERT");
-        case DELETE:
-          return traits::cs(L"DELETE");
-        case EQUAL:
-          return traits::cs(L"EQUAL");
+        case OP_INSERT:
+          return traits::cs(L"OP_INSERT");
+        case OP_DELETE:
+          return traits::cs(L"OP_DELETE");
+        case OP_EQUAL:
+          return traits::cs(L"OP_EQUAL");
       }
       throw string_t(traits::cs(L"Invalid operation."));
     }
@@ -196,13 +196,13 @@ class diff_match_patch {
       // Escape the body of the patch with %xx notation.
       for (typename Diffs::const_iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
         switch ((*cur_diff).operation) {
-          case INSERT:
+          case OP_INSERT:
             text += traits::from_wchar(L'+');
             break;
-          case DELETE:
+          case OP_DELETE:
             text += traits::from_wchar(L'-');
             break;
-          case EQUAL:
+          case OP_EQUAL:
             text += traits::from_wchar(L' ');
             break;
         }
@@ -300,7 +300,7 @@ class diff_match_patch {
     // Check for equality (speedup).
     if (text1 == text2) {
       if (!text1.empty()) {
-        diffs.push_back(Diff(EQUAL, text1));
+        diffs.push_back(Diff(OP_EQUAL, text1));
       }
     }
     else {
@@ -321,10 +321,10 @@ class diff_match_patch {
 
       // Restore the prefix and suffix.
       if (!commonprefix.empty()) {
-        diffs.push_front(Diff(EQUAL, commonprefix));
+        diffs.push_front(Diff(OP_EQUAL, commonprefix));
       }
       if (!commonsuffix.empty()) {
-        diffs.push_back(Diff(EQUAL, commonsuffix));
+        diffs.push_back(Diff(OP_EQUAL, commonsuffix));
       }
 
       diff_cleanupMerge(diffs);
@@ -346,13 +346,13 @@ class diff_match_patch {
   static void diff_compute(string_t text1, string_t text2, bool checklines, clock_t deadline, Diffs& diffs) {
     if (text1.empty()) {
       // Just add some text (speedup).
-      diffs.push_back(Diff(INSERT, text2));
+      diffs.push_back(Diff(OP_INSERT, text2));
       return;
     }
 
     if (text2.empty()) {
       // Just delete some text (speedup).
-      diffs.push_back(Diff(DELETE, text1));
+      diffs.push_back(Diff(OP_DELETE, text1));
       return;
     }
 
@@ -362,9 +362,9 @@ class diff_match_patch {
       const size_t i = longtext.find(shorttext);
       if (i != string_t::npos) {
         // Shorter text is inside the longer text (speedup).
-        const Operation op = (text1.length() > text2.length()) ? DELETE : INSERT;
+        const Operation op = (text1.length() > text2.length()) ? OP_DELETE : OP_INSERT;
         diffs.push_back(Diff(op, longtext.substr(0, i)));
-        diffs.push_back(Diff(EQUAL, shorttext));
+        diffs.push_back(Diff(OP_EQUAL, shorttext));
         diffs.push_back(Diff(op, safeMid(longtext, i + shorttext.length())));
         return;
       }
@@ -372,8 +372,8 @@ class diff_match_patch {
       if (shorttext.length() == 1) {
         // Single character string.
         // After the previous speedup, the character can't be an equality.
-        diffs.push_back(Diff(DELETE, text1));
-        diffs.push_back(Diff(INSERT, text2));
+        diffs.push_back(Diff(OP_DELETE, text1));
+        diffs.push_back(Diff(OP_INSERT, text2));
         return;
       }
       // Garbage collect longtext and shorttext by scoping out.
@@ -387,7 +387,7 @@ class diff_match_patch {
         // A half-match was found, sort out the return data.
         // Send both pairs off for separate processing.
         diff_main(hm.text1_a, hm.text2_a, checklines, deadline, diffs);
-        diffs.push_back(Diff(EQUAL, hm.mid_common));
+        diffs.push_back(Diff(OP_EQUAL, hm.mid_common));
         Diffs diffs_b;
         diff_main(hm.text1_b, hm.text2_b, checklines, deadline, diffs_b);
         diffs.splice(diffs.end(), diffs_b);
@@ -428,7 +428,7 @@ class diff_match_patch {
 
     // Rediff any replacement blocks, this time character-by-character.
     // Add a dummy entry at the end.
-    diffs.push_back(Diff(EQUAL, string_t()));
+    diffs.push_back(Diff(OP_EQUAL, string_t()));
     int count_delete = 0;
     int count_insert = 0;
     string_t text_delete;
@@ -436,15 +436,15 @@ class diff_match_patch {
 
     for (typename Diffs::iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
       switch ((*cur_diff).operation) {
-        case INSERT:
+        case OP_INSERT:
           count_insert++;
           text_insert += (*cur_diff).text;
           break;
-        case DELETE:
+        case OP_DELETE:
           count_delete++;
           text_delete += (*cur_diff).text;
           break;
-        case EQUAL:
+        case OP_EQUAL:
           // Upon reaching an equality, check for prior redundancies.
           if (count_delete >= 1 && count_insert >= 1) {
             // Delete the offending records and add the merged ones.
@@ -586,8 +586,8 @@ class diff_match_patch {
     // Diff took too long and hit the deadline or
     // number of diffs equals number of characters, no commonality at all.
     diffs.clear();
-    diffs.push_back(Diff(DELETE, text1));
-    diffs.push_back(Diff(INSERT, text2));
+    diffs.push_back(Diff(OP_DELETE, text1));
+    diffs.push_back(Diff(OP_INSERT, text2));
   }
 
   /**
@@ -882,7 +882,7 @@ class diff_match_patch {
     int length_insertions2 = 0;
     int length_deletions2 = 0;
     for (cur_diff = diffs.begin(); cur_diff != diffs.end();) {
-      if ((*cur_diff).operation == EQUAL) {
+      if ((*cur_diff).operation == OP_EQUAL) {
         // Equality found.
         equalities.push_back(cur_diff);
         length_insertions1 = length_insertions2;
@@ -892,7 +892,7 @@ class diff_match_patch {
         lastequality = (*cur_diff).text;
       } else {
         // An insertion or deletion.
-        if ((*cur_diff).operation == INSERT) {
+        if ((*cur_diff).operation == OP_INSERT) {
           length_insertions2 += (*cur_diff).text.length();
         } else {
           length_deletions2 += (*cur_diff).text.length();
@@ -907,9 +907,9 @@ class diff_match_patch {
           // printf("Splitting: '%s'\n", qPrintable(lastequality));
           // Walk back to offending equality.
           // Change second copy to insert.
-          (*(cur_diff = equalities.back())).operation = INSERT;
+          (*(cur_diff = equalities.back())).operation = OP_INSERT;
           // Duplicate record.
-          diffs.insert(cur_diff, Diff(DELETE, lastequality));
+          diffs.insert(cur_diff, Diff(OP_DELETE, lastequality));
           equalities.pop_back();  // Throw away the equality we just deleted.
           if (!equalities.empty()) {
             // Throw away the previous equality (it needs to be reevaluated).
@@ -950,8 +950,8 @@ class diff_match_patch {
     // Only extract an overlap if it is as big as the edit ahead or behind it.
     if ((cur_diff = diffs.begin()) != diffs.end()) {
       for (typename Diffs::iterator prev_diff = cur_diff; ++cur_diff != diffs.end(); prev_diff = cur_diff) {
-        if ((*prev_diff).operation == DELETE &&
-            (*cur_diff).operation == INSERT) {
+        if ((*prev_diff).operation == OP_DELETE &&
+            (*cur_diff).operation == OP_INSERT) {
           string_t deletion = (*prev_diff).text;
           string_t insertion = (*cur_diff).text;
           int overlap_length1 = diff_commonOverlap(deletion, insertion);
@@ -960,7 +960,7 @@ class diff_match_patch {
             if (overlap_length1 >= deletion.size() / 2.0 ||
                 overlap_length1 >= insertion.size() / 2.0) {
               // Overlap found.  Insert an equality and trim the surrounding edits.
-              diffs.insert(cur_diff, Diff(EQUAL, insertion.substr(0, overlap_length1)));
+              diffs.insert(cur_diff, Diff(OP_EQUAL, insertion.substr(0, overlap_length1)));
               prev_diff->text =
                   deletion.substr(0, deletion.length() - overlap_length1);
               cur_diff->text = safeMid(insertion, overlap_length1);
@@ -972,11 +972,11 @@ class diff_match_patch {
                 overlap_length2 >= insertion.length() / 2.0) {
               // Reverse overlap found.
               // Insert an equality and swap and trim the surrounding edits.
-              diffs.insert(cur_diff, Diff(EQUAL, deletion.substr(0, overlap_length2)));
-              prev_diff->operation = INSERT;
+              diffs.insert(cur_diff, Diff(OP_EQUAL, deletion.substr(0, overlap_length2)));
+              prev_diff->operation = OP_INSERT;
               prev_diff->text =
                   insertion.substr(0, insertion.length() - overlap_length2);
-              cur_diff->operation = DELETE;
+              cur_diff->operation = OP_DELETE;
               cur_diff->text = safeMid(deletion, overlap_length2);
               // diffs.insert inserts the element before the cursor, so there is
               // no need to step past the new element.
@@ -1007,8 +1007,8 @@ class diff_match_patch {
 
     // Intentionally ignore the first and last element (don't need checking).
     for (typename Diffs::iterator next_diff = cur_diff; ++next_diff != diffs.end(); prev_diff = cur_diff, cur_diff = next_diff) {
-      if ((*prev_diff).operation == EQUAL &&
-        (*next_diff).operation == EQUAL) {
+      if ((*prev_diff).operation == OP_EQUAL &&
+        (*next_diff).operation == OP_EQUAL) {
           // This is a single edit surrounded by equalities.
           equality1 = (*prev_diff).text;
           edit = (*cur_diff).text;
@@ -1155,7 +1155,7 @@ class diff_match_patch {
     bool post_del = false;
 
     for (typename Diffs::iterator cur_diff = diffs.begin(); cur_diff != diffs.end();) {
-      if ((*cur_diff).operation == EQUAL) {
+      if ((*cur_diff).operation == OP_EQUAL) {
         // Equality found.
         if ((int)(*cur_diff).text.length() < Diff_EditCost && (post_ins || post_del)) {
           // Candidate found.
@@ -1171,7 +1171,7 @@ class diff_match_patch {
         post_ins = post_del = false;
       } else {
         // An insertion or deletion.
-        if ((*cur_diff).operation == DELETE) {
+        if ((*cur_diff).operation == OP_DELETE) {
           post_del = true;
         } else {
           post_ins = true;
@@ -1192,9 +1192,9 @@ class diff_match_patch {
           // printf("Splitting: '%s'\n", qPrintable(lastequality));
           // Walk back to offending equality.
           // Change second copy to insert.
-          (*(cur_diff = equalities.back())).operation = INSERT;
+          (*(cur_diff = equalities.back())).operation = OP_INSERT;
           // Duplicate record.
-          diffs.insert(cur_diff, Diff(DELETE, lastequality));
+          diffs.insert(cur_diff, Diff(OP_DELETE, lastequality));
           equalities.pop_back();  // Throw away the equality we just deleted.
           lastequality.clear();
           changes = true;
@@ -1235,7 +1235,7 @@ class diff_match_patch {
    */
  public:
   static void diff_cleanupMerge(Diffs &diffs) {
-    diffs.push_back(Diff(EQUAL, string_t()));  // Add a dummy entry at the end.
+    diffs.push_back(Diff(OP_EQUAL, string_t()));  // Add a dummy entry at the end.
     typename Diffs::iterator prev_diff, cur_diff;
     int count_delete = 0;
     int count_insert = 0;
@@ -1245,17 +1245,17 @@ class diff_match_patch {
     int commonlength;
     for (cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
       switch ((*cur_diff).operation) {
-        case INSERT:
+        case OP_INSERT:
           count_insert++;
           text_insert += (*cur_diff).text;
           prevEqual = NULL;
           break;
-        case DELETE:
+        case OP_DELETE:
           count_delete++;
           text_delete += (*cur_diff).text;
           prevEqual = NULL;
           break;
-        case EQUAL:
+        case OP_EQUAL:
           if (count_delete + count_insert > 1) {
             // Delete the offending records.
             prev_diff = cur_diff;
@@ -1267,12 +1267,12 @@ class diff_match_patch {
               if (commonlength != 0) {
                 if (cur_diff != diffs.begin()) {
                   prev_diff = cur_diff;
-                  if ((*--prev_diff).operation != EQUAL) {
+                  if ((*--prev_diff).operation != OP_EQUAL) {
                     throw string_t(traits::cs(L"Previous diff should have been an equality."));
                   }
                   (*prev_diff).text += text_insert.substr(0, commonlength);
                 } else {
-                  diffs.insert(cur_diff, Diff(EQUAL, text_insert.substr(0, commonlength)));
+                  diffs.insert(cur_diff, Diff(OP_EQUAL, text_insert.substr(0, commonlength)));
                 }
                 text_insert = safeMid(text_insert, commonlength);
                 text_delete = safeMid(text_delete, commonlength);
@@ -1290,10 +1290,10 @@ class diff_match_patch {
             }
             // Insert the merged records.
             if (!text_delete.empty()) {
-              diffs.insert(cur_diff, Diff(DELETE, text_delete));
+              diffs.insert(cur_diff, Diff(OP_DELETE, text_delete));
             }
             if (!text_insert.empty()) {
-              diffs.insert(cur_diff, Diff(INSERT, text_insert));
+              diffs.insert(cur_diff, Diff(OP_INSERT, text_insert));
             }
           } else if (prevEqual != NULL) {
             // Merge this equality with the previous one.
@@ -1326,8 +1326,8 @@ class diff_match_patch {
     if (prev_diff != diffs.end() && ++cur_diff != diffs.end()) {
       // Intentionally ignore the first and last element (don't need checking).
       for (typename Diffs::iterator next_diff = cur_diff; ++next_diff != diffs.end(); prev_diff = cur_diff, cur_diff = next_diff) {
-        if ((*prev_diff).operation == EQUAL &&
-          (*next_diff).operation == EQUAL) {
+        if ((*prev_diff).operation == OP_EQUAL &&
+          (*next_diff).operation == OP_EQUAL) {
             // This is a single edit surrounded by equalities.
             if ((*cur_diff).text.size() >= (*prev_diff).text.size() &&
                 (*cur_diff).text.compare((*cur_diff).text.size() - (*prev_diff).text.size(), (*prev_diff).text.size(), (*prev_diff).text) == 0) {
@@ -1374,11 +1374,11 @@ class diff_match_patch {
     int last_chars2 = 0;
     typename Diffs::const_iterator last_diff = diffs.end(), cur_diff;
     for (cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
-      if ((*cur_diff).operation != INSERT) {
+      if ((*cur_diff).operation != OP_INSERT) {
         // Equality or deletion.
         chars1 += (*cur_diff).text.length();
       }
-      if ((*cur_diff).operation != DELETE) {
+      if ((*cur_diff).operation != OP_DELETE) {
         // Equality or insertion.
         chars2 += (*cur_diff).text.length();
       }
@@ -1390,7 +1390,7 @@ class diff_match_patch {
       last_chars1 = chars1;
       last_chars2 = chars2;
     }
-    if (last_diff != diffs.end() && (*last_diff).operation == DELETE) {
+    if (last_diff != diffs.end() && (*last_diff).operation == OP_DELETE) {
       // The location was deleted.
       return last_chars2;
     }
@@ -1432,13 +1432,13 @@ class diff_match_patch {
           }
       }
       switch ((*cur_diff).operation) {
-        case INSERT:
+        case OP_INSERT:
           html += traits::cs(L"<ins style=\"background:#e6ffe6;\">") + text + traits::cs(L"</ins>");
           break;
-        case DELETE:
+        case OP_DELETE:
           html += traits::cs(L"<del style=\"background:#ffe6e6;\">") + text + traits::cs(L"</del>");
           break;
-        case EQUAL:
+        case OP_EQUAL:
           html += traits::cs(L"<span>") + text + traits::cs(L"</span>");
           break;
       }
@@ -1455,7 +1455,7 @@ class diff_match_patch {
   static string_t diff_text1(const Diffs &diffs) {
     string_t text;
     for (typename Diffs::const_iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
-      if ((*cur_diff).operation != INSERT) {
+      if ((*cur_diff).operation != OP_INSERT) {
         text += (*cur_diff).text;
       }
     }
@@ -1471,7 +1471,7 @@ class diff_match_patch {
   static string_t diff_text2(const Diffs &diffs) {
     string_t text;
     for (typename Diffs::const_iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
-      if ((*cur_diff).operation != DELETE) {
+      if ((*cur_diff).operation != OP_DELETE) {
         text += (*cur_diff).text;
       }
     }
@@ -1491,13 +1491,13 @@ class diff_match_patch {
     int deletions = 0;
     for (typename Diffs::const_iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
       switch ((*cur_diff).operation) {
-        case INSERT:
+        case OP_INSERT:
           insertions += (*cur_diff).text.length();
           break;
-        case DELETE:
+        case OP_DELETE:
           deletions += (*cur_diff).text.length();
           break;
-        case EQUAL:
+        case OP_EQUAL:
           // A deletion and an insertion is one substitution.
           levenshtein += std::max(insertions, deletions);
           insertions = 0;
@@ -1522,16 +1522,16 @@ class diff_match_patch {
     string_t text;
     for (typename Diffs::const_iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
       switch ((*cur_diff).operation) {
-        case INSERT: {
+        case OP_INSERT: {
           text += traits::from_wchar(L'+');
           append_percent_encoded(text, (*cur_diff).text);
           text += traits::from_wchar(L'\t');
           break;
         }
-        case DELETE:
+        case OP_DELETE:
           text += traits::from_wchar(L'-') + to_string((*cur_diff).text.length()) + traits::from_wchar(L'\t');
           break;
-        case EQUAL:
+        case OP_EQUAL:
           text += traits::from_wchar(L'=') + to_string((*cur_diff).text.length()) + traits::from_wchar(L'\t');
           break;
       }
@@ -1568,7 +1568,7 @@ class diff_match_patch {
       switch (traits::to_wchar(*token)) {
         case L'+':
           percent_decode(param);
-          diffs.push_back(Diff(INSERT, param));
+          diffs.push_back(Diff(OP_INSERT, param));
           break;
         case L'-':
           // Fall through.
@@ -1582,9 +1582,9 @@ class diff_match_patch {
           text = safeMid(text1, pointer, n);
           pointer += n;
           if (traits::to_wchar(*token) == L'=') {
-            diffs.push_back(Diff(EQUAL, text));
+            diffs.push_back(Diff(OP_EQUAL, text));
           } else {
-            diffs.push_back(Diff(DELETE, text));
+            diffs.push_back(Diff(OP_DELETE, text));
           }
           break;
         }
@@ -1670,7 +1670,7 @@ class diff_match_patch {
 
     int bin_min, bin_mid;
     int bin_max = pattern.length() + text.length();
-    int *rd;
+    int *rd = NULL;
     int *last_rd = NULL;
     for (int d = 0; d < (int)pattern.length(); d++) {
       // Scan for the best match; each iteration allows for one more error.
@@ -1806,14 +1806,14 @@ class diff_match_patch {
     string_t prefix = safeMid(text, std::max(0, patch.start2 - padding),
         patch.start2 - std::max(0, patch.start2 - padding));
     if (!prefix.empty()) {
-      patch.diffs.push_front(Diff(EQUAL, prefix));
+      patch.diffs.push_front(Diff(OP_EQUAL, prefix));
     }
     // Add the suffix.
     string_t suffix = safeMid(text, patch.start2 + patch.length1,
         std::min((int)text.length(), patch.start2 + patch.length1 + padding)
         - (patch.start2 + patch.length1));
     if (!suffix.empty()) {
-      patch.diffs.push_back(Diff(EQUAL, suffix));
+      patch.diffs.push_back(Diff(OP_EQUAL, suffix));
     }
 
     // Roll back the start points.
@@ -1889,26 +1889,26 @@ class diff_match_patch {
       string_t prepatch_text = text1;
       string_t postpatch_text = text1;
       for (typename Diffs::const_iterator cur_diff = diffs.begin(); cur_diff != diffs.end(); ++cur_diff) {
-        if (patch.diffs.empty() && (*cur_diff).operation != EQUAL) {
+        if (patch.diffs.empty() && (*cur_diff).operation != OP_EQUAL) {
           // A new patch starts here.
           patch.start1 = char_count1;
           patch.start2 = char_count2;
         }
 
         switch ((*cur_diff).operation) {
-          case INSERT:
+          case OP_INSERT:
             patch.diffs.push_back(*cur_diff);
             patch.length2 += (*cur_diff).text.length();
             postpatch_text = postpatch_text.substr(0, char_count2)
                 + (*cur_diff).text + safeMid(postpatch_text, char_count2);
             break;
-          case DELETE:
+          case OP_DELETE:
             patch.length1 += (*cur_diff).text.length();
             patch.diffs.push_back(*cur_diff);
             postpatch_text = postpatch_text.substr(0, char_count2)
                 + safeMid(postpatch_text, char_count2 + (*cur_diff).text.length());
             break;
-          case EQUAL:
+          case OP_EQUAL:
             if ((int)(*cur_diff).text.length() <= 2 * Patch_Margin
                 && !patch.diffs.empty() && !(*cur_diff == diffs.back())) {
               // Small equality inside a patch.
@@ -1935,10 +1935,10 @@ class diff_match_patch {
         }
 
         // Update the current character count.
-        if ((*cur_diff).operation != INSERT) {
+        if ((*cur_diff).operation != OP_INSERT) {
           char_count1 += (*cur_diff).text.length();
         }
-        if ((*cur_diff).operation != DELETE) {
+        if ((*cur_diff).operation != OP_DELETE) {
           char_count2 += (*cur_diff).text.length();
         }
       }
@@ -2045,20 +2045,20 @@ class diff_match_patch {
             diff_cleanupSemanticLossless(diffs);
             int index1 = 0;
             for (typename Diffs::const_iterator cur_diff = (*cur_patch).diffs.begin(); cur_diff != (*cur_patch).diffs.end(); ++cur_diff) {
-              if ((*cur_diff).operation != EQUAL) {
+              if ((*cur_diff).operation != OP_EQUAL) {
                 int index2 = diff_xIndex(diffs, index1);
-                if ((*cur_diff).operation == INSERT) {
+                if ((*cur_diff).operation == OP_INSERT) {
                   // Insertion
                   text = text.substr(0, start_loc + index2) + (*cur_diff).text
                       + safeMid(text, start_loc + index2);
-                } else if ((*cur_diff).operation == DELETE) {
+                } else if ((*cur_diff).operation == OP_DELETE) {
                   // Deletion
                   text = text.substr(0, start_loc + index2)
                       + safeMid(text, start_loc + diff_xIndex(diffs,
                       index1 + (*cur_diff).text.length()));
                 }
               }
-              if ((*cur_diff).operation != DELETE) {
+              if ((*cur_diff).operation != OP_DELETE) {
                 index1 += (*cur_diff).text.length();
               }
             }
@@ -2094,9 +2094,9 @@ class diff_match_patch {
     // Add some padding on start of first diff.
     Patch &firstPatch = patches.front();
     Diffs &firstPatchDiffs = firstPatch.diffs;
-    if (firstPatchDiffs.empty() || firstPatchDiffs.front().operation != EQUAL) {
+    if (firstPatchDiffs.empty() || firstPatchDiffs.front().operation != OP_EQUAL) {
       // Add nullPadding equality.
-      firstPatchDiffs.push_front(Diff(EQUAL, nullPadding));
+      firstPatchDiffs.push_front(Diff(OP_EQUAL, nullPadding));
       firstPatch.start1 -= paddingLength;  // Should be 0.
       firstPatch.start2 -= paddingLength;  // Should be 0.
       firstPatch.length1 += paddingLength;
@@ -2116,9 +2116,9 @@ class diff_match_patch {
     // Add some padding on end of last diff.
     Patch &lastPatch = patches.front();
     Diffs &lastPatchDiffs = lastPatch.diffs;
-    if (lastPatchDiffs.empty() || lastPatchDiffs.back().operation != EQUAL) {
+    if (lastPatchDiffs.empty() || lastPatchDiffs.back().operation != OP_EQUAL) {
       // Add nullPadding equality.
-      lastPatchDiffs.push_back(Diff(EQUAL, nullPadding));
+      lastPatchDiffs.push_back(Diff(OP_EQUAL, nullPadding));
       lastPatch.length1 += paddingLength;
       lastPatch.length2 += paddingLength;
     } else if (paddingLength > (int)lastPatchDiffs.back().text.length()) {
@@ -2166,21 +2166,21 @@ class diff_match_patch {
         patch.start2 = start2 - precontext.length();
         if (!precontext.empty()) {
           patch.length1 = patch.length2 = precontext.length();
-          patch.diffs.push_back(Diff(EQUAL, precontext));
+          patch.diffs.push_back(Diff(OP_EQUAL, precontext));
         }
         while (!bigpatch.diffs.empty()
             && patch.length1 < patch_size - Patch_Margin) {
           diff_type = bigpatch.diffs.front().operation;
           diff_text = bigpatch.diffs.front().text;
-          if (diff_type == INSERT) {
+          if (diff_type == OP_INSERT) {
             // Insertions are harmless.
             patch.length2 += diff_text.length();
             start2 += diff_text.length();
             patch.diffs.push_back(bigpatch.diffs.front());
             bigpatch.diffs.pop_front();
             empty = false;
-          } else if (diff_type == DELETE && patch.diffs.size() == 1
-              && patch.diffs.front().operation == EQUAL
+          } else if (diff_type == OP_DELETE && patch.diffs.size() == 1
+              && patch.diffs.front().operation == OP_EQUAL
               && (int)diff_text.length() > 2 * patch_size) {
             // This is a large deletion.  Let it pass in one chunk.
             patch.length1 += diff_text.length();
@@ -2194,7 +2194,7 @@ class diff_match_patch {
                 patch_size - patch.length1 - Patch_Margin));
             patch.length1 += diff_text.length();
             start1 += diff_text.length();
-            if (diff_type == EQUAL) {
+            if (diff_type == OP_EQUAL) {
               patch.length2 += diff_text.length();
               start2 += diff_text.length();
             } else {
@@ -2219,10 +2219,10 @@ class diff_match_patch {
           patch.length1 += postcontext.length();
           patch.length2 += postcontext.length();
           if (!patch.diffs.empty()
-              && patch.diffs.back().operation == EQUAL) {
+              && patch.diffs.back().operation == OP_EQUAL) {
             patch.diffs.back().text += postcontext;
           } else {
-            patch.diffs.push_back(Diff(EQUAL, postcontext));
+            patch.diffs.push_back(Diff(OP_EQUAL, postcontext));
           }
         }
         if (!empty) {
@@ -2316,15 +2316,15 @@ class diff_match_patch {
           switch (traits::to_wchar(sign)) {
             case L'-':
               // Deletion.
-              patch.diffs.push_back(Diff(DELETE, line));
+              patch.diffs.push_back(Diff(OP_DELETE, line));
               continue;
             case L'+':
               // Insertion.
-              patch.diffs.push_back(Diff(INSERT, line));
+              patch.diffs.push_back(Diff(OP_INSERT, line));
               continue;
             case L' ':
               // Minor equality.
-              patch.diffs.push_back(Diff(EQUAL, line));
+              patch.diffs.push_back(Diff(OP_EQUAL, line));
               continue;
             case L'@':
               // Start of next patch.

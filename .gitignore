@@ -16,3 +16,5 @@ diff_match_patch_test
 diff_match_patch_test_utf8
 CMakeLists.txt.user
 speedtest
+build
+.cache
